@@ -720,8 +720,7 @@ func (ar *AddressResolver) addCollectionRidIfNameBased(request *AddressResolverR
 
 // NotFoundException represents a not found error
 type NotFoundException struct {
-	message         string
-	resourceAddress string
+	message string
 }
 
 // NewNotFoundException creates a new NotFoundException

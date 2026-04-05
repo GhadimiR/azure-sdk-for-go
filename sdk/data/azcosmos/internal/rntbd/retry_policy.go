@@ -240,10 +240,6 @@ func (p *GoneAndRetryWithRetryPolicy) createWriteNotRetriableError(req *ServiceR
 	})
 }
 
-func (p *GoneAndRetryWithRetryPolicy) handleGoneException(retryCtx *RetryContext) ShouldRetryResult {
-	return p.handleGoneExceptionWithWriteSafety(retryCtx, nil, true)
-}
-
 func (p *GoneAndRetryWithRetryPolicy) handleGoneExceptionWithWriteSafety(retryCtx *RetryContext, req *ServiceRequest, isBasedOn410FromService bool) ShouldRetryResult {
 	if !p.canRetryWrite(req, isBasedOn410FromService) {
 		return p.createWriteNotRetriableError(req)
@@ -298,20 +294,12 @@ func (p *GoneAndRetryWithRetryPolicy) handleGoneExceptionWithWriteSafety(retryCt
 	}
 }
 
-func (p *GoneAndRetryWithRetryPolicy) handlePartitionIsMigratingException(retryCtx *RetryContext) ShouldRetryResult {
-	return p.handlePartitionIsMigratingExceptionWithWriteSafety(retryCtx, nil, true)
-}
-
 func (p *GoneAndRetryWithRetryPolicy) handlePartitionIsMigratingExceptionWithWriteSafety(retryCtx *RetryContext, req *ServiceRequest, isBasedOn410FromService bool) ShouldRetryResult {
 	retryCtx.ForceCollectionRoutingMapRefresh = true
 
 	result := p.handleGoneExceptionWithWriteSafety(retryCtx, req, isBasedOn410FromService)
 	result.ForceRefreshAddressCache = true
 	return result
-}
-
-func (p *GoneAndRetryWithRetryPolicy) handlePartitionKeyRangeIsSplittingException(retryCtx *RetryContext) ShouldRetryResult {
-	return p.handlePartitionKeyRangeIsSplittingExceptionWithWriteSafety(retryCtx, nil, true)
 }
 
 func (p *GoneAndRetryWithRetryPolicy) handlePartitionKeyRangeIsSplittingExceptionWithWriteSafety(retryCtx *RetryContext, req *ServiceRequest, isBasedOn410FromService bool) ShouldRetryResult {

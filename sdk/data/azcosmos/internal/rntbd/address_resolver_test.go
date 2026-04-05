@@ -95,14 +95,6 @@ func newMockAddressCache() *mockAddressCache {
 	}
 }
 
-func (m *mockAddressCache) findKeyForIdentity(addresses map[string][]AddressInformation, pkri *PartitionKeyRangeIdentity) string {
-	key := pkri.CollectionRID + ":" + pkri.PartitionKeyRangeID
-	if _, ok := addresses[key]; ok {
-		return key
-	}
-	return ""
-}
-
 func (m *mockAddressCache) TryGetAddresses(ctx context.Context, request *AddressResolverRequest, partitionKeyRangeIdentity *PartitionKeyRangeIdentity, forceRefresh bool) ([]AddressInformation, error) {
 	key := partitionKeyRangeIdentity.CollectionRID + ":" + partitionKeyRangeIdentity.PartitionKeyRangeID
 

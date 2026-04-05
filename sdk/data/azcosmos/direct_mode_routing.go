@@ -65,21 +65,6 @@ func (c *directModeRoutingCache) set(databaseName, containerName string, entry *
 	c.entries[key] = entry
 }
 
-func (c *directModeRoutingCache) invalidate(databaseName, containerName string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	key := routingCacheKey(databaseName, containerName)
-	delete(c.entries, key)
-}
-
-func (c *directModeRoutingCache) invalidateAll() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	c.entries = make(map[string]*routingCacheEntry)
-}
-
 type directModeRouter struct {
 	cache *directModeRoutingCache
 }
@@ -179,12 +164,4 @@ func isEPKInRange(epk, minInclusive, maxExclusive string) bool {
 	}
 
 	return epk >= minInclusive && epk < maxExclusive
-}
-
-func (r *directModeRouter) invalidateCache(databaseName, containerName string) {
-	r.cache.invalidate(databaseName, containerName)
-}
-
-func (r *directModeRouter) invalidateAllCaches() {
-	r.cache.invalidateAll()
 }

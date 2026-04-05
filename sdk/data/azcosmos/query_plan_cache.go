@@ -170,14 +170,3 @@ func (c *QueryPlanCache) evictOldestLocked() {
 		delete(c.entries, oldestKey)
 	}
 }
-
-// evictExpiredLocked removes all expired entries.
-// Must be called with the write lock held.
-func (c *QueryPlanCache) evictExpiredLocked() {
-	now := time.Now()
-	for key, entry := range c.entries {
-		if now.Sub(entry.createdAt) > c.ttl {
-			delete(c.entries, key)
-		}
-	}
-}
