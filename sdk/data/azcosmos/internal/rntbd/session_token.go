@@ -216,11 +216,11 @@ func (v *VectorSessionToken) buildSessionToken() string {
 	sort.Ints(regionIDs)
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%d%c%d", v.version, segmentSeparator, v.globalLSN))
+	fmt.Fprintf(&sb, "%d%c%d", v.version, segmentSeparator, v.globalLSN)
 
 	for _, regionID := range regionIDs {
 		sb.WriteByte(segmentSeparator)
-		sb.WriteString(fmt.Sprintf("%d%c%d", regionID, regionProgressSeparator, v.localLSNByRegion[regionID]))
+		fmt.Fprintf(&sb, "%d%c%d", regionID, regionProgressSeparator, v.localLSNByRegion[regionID])
 	}
 
 	return sb.String()

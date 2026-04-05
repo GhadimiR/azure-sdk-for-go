@@ -166,13 +166,13 @@ func (h *contextRequestHeaderValues) toTokenStream() *TokenStream {
 	ts := NewTokenStream()
 
 	// ProtocolVersion - ULong (required)
-	ts.SetValue(uint16(ContextRequestHeaderProtocolVersion), TokenULong, h.ProtocolVersion)
+	_ = ts.SetValue(uint16(ContextRequestHeaderProtocolVersion), TokenULong, h.ProtocolVersion)
 
 	// ClientVersion - SmallString (required)
-	ts.SetValue(uint16(ContextRequestHeaderClientVersion), TokenSmallString, h.ClientVersion)
+	_ = ts.SetValue(uint16(ContextRequestHeaderClientVersion), TokenSmallString, h.ClientVersion)
 
 	// UserAgent - SmallString (required)
-	ts.SetValue(uint16(ContextRequestHeaderUserAgent), TokenSmallString, h.UserAgent)
+	_ = ts.SetValue(uint16(ContextRequestHeaderUserAgent), TokenSmallString, h.UserAgent)
 
 	return ts
 }
@@ -352,24 +352,24 @@ func (h *contextHeaders) toTokenStream() *TokenStream {
 	ts := NewTokenStream()
 
 	// ProtocolVersion - ULong
-	ts.SetValue(uint16(ContextHeaderProtocolVersion), TokenULong, h.ProtocolVersion)
+	_ = ts.SetValue(uint16(ContextHeaderProtocolVersion), TokenULong, h.ProtocolVersion)
 
 	// ClientVersion - SmallString
 	if h.ClientVersion != "" {
-		ts.SetValue(uint16(ContextHeaderClientVersion), TokenSmallString, h.ClientVersion)
+		_ = ts.SetValue(uint16(ContextHeaderClientVersion), TokenSmallString, h.ClientVersion)
 	}
 
 	// ServerAgent - SmallString (required)
-	ts.SetValue(uint16(ContextHeaderServerAgent), TokenSmallString, h.ServerAgent)
+	_ = ts.SetValue(uint16(ContextHeaderServerAgent), TokenSmallString, h.ServerAgent)
 
 	// ServerVersion - SmallString (required)
-	ts.SetValue(uint16(ContextHeaderServerVersion), TokenSmallString, h.ServerVersion)
+	_ = ts.SetValue(uint16(ContextHeaderServerVersion), TokenSmallString, h.ServerVersion)
 
 	// IdleTimeoutInSeconds - ULong
-	ts.SetValue(uint16(ContextHeaderIdleTimeoutInSeconds), TokenULong, h.IdleTimeoutInSeconds)
+	_ = ts.SetValue(uint16(ContextHeaderIdleTimeoutInSeconds), TokenULong, h.IdleTimeoutInSeconds)
 
 	// UnauthenticatedTimeoutInSeconds - ULong
-	ts.SetValue(uint16(ContextHeaderUnauthenticatedTimeoutInSeconds), TokenULong, h.UnauthenticatedTimeoutInSeconds)
+	_ = ts.SetValue(uint16(ContextHeaderUnauthenticatedTimeoutInSeconds), TokenULong, h.UnauthenticatedTimeoutInSeconds)
 
 	return ts
 }

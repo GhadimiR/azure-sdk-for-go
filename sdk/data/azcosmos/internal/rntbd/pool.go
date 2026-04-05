@@ -375,7 +375,7 @@ func (p *ConnectionPool) tryAcquireAvailable() *PooledConnection {
 		if p.options.HealthCheckOnAcquire {
 			result := p.healthChecker.IsHealthy(conn.Connection, conn.timestamps)
 			if !result.Healthy {
-				conn.Close()
+				_ = conn.Close()
 				p.totalClosed.Add(1)
 				continue
 			}
@@ -413,7 +413,7 @@ func (p *ConnectionPool) createConnection(ctx context.Context) (*PooledConnectio
 	p.mu.Lock()
 	if p.closed {
 		p.mu.Unlock()
-		conn.Close()
+		_ = conn.Close()
 		return nil, ErrPoolClosed
 	}
 
@@ -442,7 +442,7 @@ func (p *ConnectionPool) Release(conn *PooledConnection) {
 	defer p.mu.Unlock()
 
 	if p.closed {
-		conn.Close()
+		_ = conn.Close()
 		p.totalClosed.Add(1)
 		return
 	}
@@ -454,7 +454,7 @@ func (p *ConnectionPool) Release(conn *PooledConnection) {
 	if p.options.HealthCheckOnRelease && !conn.IsClosed() {
 		result := p.healthChecker.IsHealthy(conn.Connection, conn.timestamps)
 		if !result.Healthy {
-			conn.Close()
+			_ = conn.Close()
 			p.totalClosed.Add(1)
 			p.processPendingAcquires()
 			return
@@ -541,7 +541,7 @@ func (p *ConnectionPool) evictIdleConnections() {
 	for _, e := range toRemove {
 		conn := e.Value.(*PooledConnection)
 		p.availableConns.Remove(e)
-		conn.Close()
+		_ = conn.Close()
 		p.totalClosed.Add(1)
 	}
 }
@@ -556,14 +556,14 @@ func (p *ConnectionPool) Close() error {
 		// Close all available connections
 		for e := p.availableConns.Front(); e != nil; e = e.Next() {
 			conn := e.Value.(*PooledConnection)
-			conn.Connection.Close()
+			_ = conn.Close()
 			p.totalClosed.Add(1)
 		}
 		p.availableConns.Init()
 
 		// Close all acquired connections
 		for _, conn := range p.acquiredConns {
-			conn.Connection.Close()
+			_ = conn.Close()
 			p.totalClosed.Add(1)
 		}
 		p.acquiredConns = make(map[uint64]*PooledConnection)
@@ -807,7 +807,7 @@ func (ep *EndpointProvider) evictIdleEndpoints() {
 	for key, endpoint := range ep.endpoints {
 		lastRequest := endpoint.lastRequestNanos.Load()
 		if now-lastRequest > threshold {
-			endpoint.pool.Close()
+			_ = endpoint.pool.Close()
 			delete(ep.endpoints, key)
 			ep.evictions.Add(1)
 		}
@@ -827,7 +827,7 @@ func (ep *EndpointProvider) Close() error {
 
 	// Close all endpoints
 	for _, endpoint := range ep.endpoints {
-		endpoint.pool.Close()
+		_ = endpoint.pool.Close()
 	}
 	ep.endpoints = make(map[string]*Endpoint)
 

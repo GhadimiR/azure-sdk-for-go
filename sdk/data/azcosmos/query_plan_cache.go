@@ -157,7 +157,7 @@ func (c *QueryPlanCache) evictOldestLocked() {
 	}
 
 	var oldestKey string
-	var oldestSeq uint64 = ^uint64(0) // Max uint64
+	oldestSeq := ^uint64(0) // Max uint64
 
 	for key, entry := range c.entries {
 		if entry.accessSeq < oldestSeq {

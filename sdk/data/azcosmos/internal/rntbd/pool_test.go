@@ -81,7 +81,7 @@ func TestHealthChecker_RecentRead(t *testing.T) {
 
 	conn, err := Dial(ctx, server.Address(), connOpts)
 	require.NoError(t, err)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	// Recent read should be healthy
 	ts := NewHealthCheckTimestamps()
@@ -115,7 +115,7 @@ func TestHealthChecker_ClosedConnection(t *testing.T) {
 
 	conn, err := Dial(ctx, server.Address(), connOpts)
 	require.NoError(t, err)
-	conn.Close()
+	_ = conn.Close()
 
 	ts := NewHealthCheckTimestamps()
 	result = hc.IsHealthy(conn, ts)
@@ -144,7 +144,7 @@ func TestHealthChecker_IdleTimeout(t *testing.T) {
 
 	conn, err := Dial(ctx, server.Address(), connOpts)
 	require.NoError(t, err)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	// Create timestamps that simulate idle connection
 	// Must be older than both:
@@ -170,7 +170,7 @@ func TestConnectionPool_Create(t *testing.T) {
 
 	pool := NewConnectionPool(addr, opts)
 	require.NotNil(t, pool)
-	defer pool.Close()
+	defer func() { _ = pool.Close() }()
 
 	require.False(t, pool.IsClosed())
 	stats := pool.Stats()
@@ -196,7 +196,7 @@ func TestConnectionPool_AcquireAndRelease(t *testing.T) {
 	opts.ConnectionOptions.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 
 	pool := NewConnectionPool(server.Address(), opts)
-	defer pool.Close()
+	defer func() { _ = pool.Close() }()
 
 	ctx := context.Background()
 
@@ -236,7 +236,7 @@ func TestConnectionPool_ReuseConnection(t *testing.T) {
 	opts.ConnectionOptions.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 
 	pool := NewConnectionPool(server.Address(), opts)
-	defer pool.Close()
+	defer func() { _ = pool.Close() }()
 
 	ctx := context.Background()
 
@@ -281,7 +281,7 @@ func TestConnectionPool_MaxConnections(t *testing.T) {
 	opts.ConnectionOptions.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 
 	pool := NewConnectionPool(server.Address(), opts)
-	defer pool.Close()
+	defer func() { _ = pool.Close() }()
 
 	ctx := context.Background()
 
@@ -330,7 +330,7 @@ func TestConnectionPool_Close(t *testing.T) {
 	conn, err := pool.Acquire(ctx)
 	require.NoError(t, err)
 
-	pool.Close()
+	_ = pool.Close()
 	require.True(t, pool.IsClosed())
 
 	conn.Release()
@@ -366,7 +366,7 @@ func TestConnectionPool_ConcurrentAcquireRelease(t *testing.T) {
 	opts.ConnectionOptions.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 
 	pool := NewConnectionPool(server.Address(), opts)
-	defer pool.Close()
+	defer func() { _ = pool.Close() }()
 
 	var wg sync.WaitGroup
 	var successCount atomic.Int64
@@ -406,7 +406,7 @@ func TestEndpointProvider_Create(t *testing.T) {
 	opts := DefaultPoolOptions()
 	provider := NewEndpointProvider(opts)
 	require.NotNil(t, provider)
-	defer provider.Close()
+	defer func() { _ = provider.Close() }()
 
 	require.False(t, provider.IsClosed())
 	require.Equal(t, 0, provider.Count())
@@ -429,7 +429,7 @@ func TestEndpointProvider_GetOrCreate(t *testing.T) {
 	opts.ConnectionOptions.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 
 	provider := NewEndpointProvider(opts)
-	defer provider.Close()
+	defer func() { _ = provider.Close() }()
 
 	endpoint1, err := provider.GetOrCreate(server.Address())
 	require.NoError(t, err)
@@ -471,7 +471,7 @@ func TestEndpointProvider_MultipleEndpoints(t *testing.T) {
 	opts.ConnectionOptions.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 
 	provider := NewEndpointProvider(opts)
-	defer provider.Close()
+	defer func() { _ = provider.Close() }()
 
 	endpoint1, err := provider.GetOrCreate(server1.Address())
 	require.NoError(t, err)
@@ -489,7 +489,7 @@ func TestEndpointProvider_MultipleEndpoints(t *testing.T) {
 func TestEndpointProvider_Evict(t *testing.T) {
 	opts := DefaultPoolOptions()
 	provider := NewEndpointProvider(opts)
-	defer provider.Close()
+	defer func() { _ = provider.Close() }()
 
 	addr, _ := url.Parse("rntbd://localhost:10255/")
 	endpoint, err := provider.GetOrCreate(addr)
@@ -530,7 +530,7 @@ func TestEndpointProvider_Close(t *testing.T) {
 	endpoint, err := provider.GetOrCreate(server.Address())
 	require.NoError(t, err)
 
-	provider.Close()
+	_ = provider.Close()
 	require.True(t, provider.IsClosed())
 	require.True(t, endpoint.IsClosed())
 
@@ -558,7 +558,7 @@ func TestEndpoint_Acquire(t *testing.T) {
 	opts.ConnectionOptions.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 
 	provider := NewEndpointProvider(opts)
-	defer provider.Close()
+	defer func() { _ = provider.Close() }()
 
 	endpoint, err := provider.GetOrCreate(server.Address())
 	require.NoError(t, err)
@@ -577,7 +577,7 @@ func TestEndpoint_Acquire(t *testing.T) {
 func TestEndpoint_Stats(t *testing.T) {
 	opts := DefaultPoolOptions()
 	provider := NewEndpointProvider(opts)
-	defer provider.Close()
+	defer func() { _ = provider.Close() }()
 
 	addr, _ := url.Parse("rntbd://localhost:10255/")
 	endpoint, err := provider.GetOrCreate(addr)
@@ -603,7 +603,7 @@ func TestEndpoint_Stats(t *testing.T) {
 func TestEndpoint_Close(t *testing.T) {
 	opts := DefaultPoolOptions()
 	provider := NewEndpointProvider(opts)
-	defer provider.Close()
+	defer func() { _ = provider.Close() }()
 
 	addr, _ := url.Parse("rntbd://localhost:10255/")
 	endpoint, err := provider.GetOrCreate(addr)
@@ -611,7 +611,7 @@ func TestEndpoint_Close(t *testing.T) {
 	require.Equal(t, 1, provider.Count())
 
 	// Close endpoint
-	endpoint.Close()
+	_ = endpoint.Close()
 	require.True(t, endpoint.IsClosed())
 
 	// Should be evicted from provider
@@ -641,7 +641,7 @@ func TestPooledConnection_Release(t *testing.T) {
 	opts.ConnectionOptions.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 
 	pool := NewConnectionPool(server.Address(), opts)
-	defer pool.Close()
+	defer func() { _ = pool.Close() }()
 
 	ctx := context.Background()
 

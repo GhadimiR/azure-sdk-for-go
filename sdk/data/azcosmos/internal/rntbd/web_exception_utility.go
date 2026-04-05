@@ -128,11 +128,7 @@ func isSSLHandshakeError(err error) bool {
 	}
 
 	var unknownAuthErr x509.UnknownAuthorityError
-	if errors.As(err, &unknownAuthErr) {
-		return true
-	}
-
-	return false
+	return errors.As(err, &unknownAuthErr)
 }
 
 func isSSLError(err error) bool {
@@ -146,11 +142,7 @@ func isSSLError(err error) bool {
 	}
 
 	var alertErr tls.AlertError
-	if errors.As(err, &alertErr) {
-		return true
-	}
-
-	return false
+	return errors.As(err, &alertErr)
 }
 
 func isClosedChannelError(err error) bool {
@@ -165,8 +157,5 @@ func isClosedChannelError(err error) bool {
 
 func isSocketError(err error) bool {
 	var opErr *net.OpError
-	if errors.As(err, &opErr) {
-		return true
-	}
-	return false
+	return errors.As(err, &opErr)
 }

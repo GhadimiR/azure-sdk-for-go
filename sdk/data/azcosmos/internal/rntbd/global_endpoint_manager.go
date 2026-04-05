@@ -461,12 +461,12 @@ func (gem *GlobalEndpointManager) StartRefreshLocationTimerAsync(ctx context.Con
 }
 
 func (gem *GlobalEndpointManager) backgroundRefresh(ctx context.Context) {
-	gem.refreshLocations(ctx)
+	_ = gem.refreshLocations(ctx)
 	gem.refreshInBackground.Store(false)
 
 	shouldRefresh, canRefreshInBackground := gem.locationCache.shouldRefreshEndpoints()
 	if shouldRefresh && !canRefreshInBackground {
-		gem.refreshLocations(ctx)
+		_ = gem.refreshLocations(ctx)
 	}
 }
 

@@ -549,8 +549,7 @@ func TestCacheRefreshesWhileRoutingByPartitionKey(t *testing.T) {
 
 			if tc.expectError != nil {
 				require.Error(t, err)
-				switch tc.expectError.(type) {
-				case *NotFoundException:
+				if _, ok := tc.expectError.(*NotFoundException); ok {
 					var notFoundErr *NotFoundException
 					require.True(t, errors.As(err, &notFoundErr), "expected NotFoundException")
 				}

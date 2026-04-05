@@ -62,7 +62,7 @@ func NewClientWithKey(endpoint string, cred KeyCredential, o *ClientOptions) (*C
 	if err != nil {
 		return nil, err
 	}
-	preferredRegions := []string{}
+	var preferredRegions []string
 	enableCrossRegionRetries := true
 	var directTransport *directModeTransport
 

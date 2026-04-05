@@ -55,13 +55,13 @@ func TestDecodeRequestFrame(t *testing.T) {
 	var buf bytes.Buffer
 
 	// Write resourceType (little-endian)
-	binary.Write(&buf, binary.LittleEndian, uint16(ResourceCollection))
+	_ = binary.Write(&buf, binary.LittleEndian, uint16(ResourceCollection))
 
 	// Write operationType (little-endian)
-	binary.Write(&buf, binary.LittleEndian, uint16(OperationCreate))
+	_ = binary.Write(&buf, binary.LittleEndian, uint16(OperationCreate))
 
 	// Write activityID (MS-GUID format)
-	WriteUUID(activityID, &buf)
+	_ = WriteUUID(activityID, &buf)
 
 	// Decode the frame
 	frame, err := DecodeRequestFrame(&buf)
@@ -177,13 +177,13 @@ func TestDecodeResponseFrame(t *testing.T) {
 	var buf bytes.Buffer
 
 	// Write length (little-endian)
-	binary.Write(&buf, binary.LittleEndian, uint32(ResponseFrameLength+50))
+	_ = binary.Write(&buf, binary.LittleEndian, uint32(ResponseFrameLength+50))
 
 	// Write status (little-endian, signed)
-	binary.Write(&buf, binary.LittleEndian, int32(404))
+	_ = binary.Write(&buf, binary.LittleEndian, int32(404))
 
 	// Write activityID (MS-GUID format)
-	WriteUUID(activityID, &buf)
+	_ = WriteUUID(activityID, &buf)
 
 	// Decode the frame
 	frame, err := DecodeResponseFrame(&buf)
@@ -199,9 +199,9 @@ func TestDecodeResponseFrame_TooSmall(t *testing.T) {
 	var buf bytes.Buffer
 
 	// Write length smaller than minimum
-	binary.Write(&buf, binary.LittleEndian, uint32(10)) // Less than ResponseFrameLength
-	binary.Write(&buf, binary.LittleEndian, int32(200))
-	WriteUUID(uuid.Nil, &buf)
+	_ = binary.Write(&buf, binary.LittleEndian, uint32(10)) // Less than ResponseFrameLength
+	_ = binary.Write(&buf, binary.LittleEndian, int32(200))
+	_ = WriteUUID(uuid.Nil, &buf)
 
 	_, err := DecodeResponseFrame(&buf)
 	require.Error(t, err)

@@ -257,7 +257,7 @@ func TestDial_Success(t *testing.T) {
 	conn, err := Dial(ctx, server.Address(), opts)
 	require.NoError(t, err)
 	require.NotNil(t, conn)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	// Verify connection state
 	require.False(t, conn.IsClosed())
@@ -281,7 +281,7 @@ func TestConnection_Send_Success(t *testing.T) {
 		server.HandleRequest(t, serverConn, func(req *RequestMessage) *ResponseMessage {
 			resp := NewResponseMessage(StatusOK, req.Frame.ActivityID)
 			resp.Payload = []byte(`{"result": "success"}`)
-			resp.Headers.SetValue(uint16(ResponseHeaderPayloadPresent), TokenByte, byte(1))
+			_ = resp.Headers.SetValue(uint16(ResponseHeaderPayloadPresent), TokenByte, byte(1))
 			return resp
 		})
 	}()
@@ -293,12 +293,12 @@ func TestConnection_Send_Success(t *testing.T) {
 
 	conn, err := Dial(ctx, server.Address(), opts)
 	require.NoError(t, err)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	// Send request
 	activityID := uuid.New()
 	req := NewRequestMessage(ResourceDocument, OperationRead, activityID)
-	req.Headers.SetValue(uint16(RequestHeaderPayloadPresent), TokenByte, byte(0))
+	_ = req.Headers.SetValue(uint16(RequestHeaderPayloadPresent), TokenByte, byte(0))
 
 	resp, err := conn.Send(ctx, req)
 	require.NoError(t, err)
@@ -342,7 +342,7 @@ func TestConnection_Send_Multiplexing(t *testing.T) {
 
 	conn, err := Dial(ctx, server.Address(), opts)
 	require.NoError(t, err)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	// Send multiple requests concurrently
 	var wg sync.WaitGroup
@@ -355,7 +355,7 @@ func TestConnection_Send_Multiplexing(t *testing.T) {
 
 			activityID := uuid.New()
 			req := NewRequestMessage(ResourceDocument, OperationRead, activityID)
-			req.Headers.SetValue(uint16(RequestHeaderPayloadPresent), TokenByte, byte(0))
+			_ = req.Headers.SetValue(uint16(RequestHeaderPayloadPresent), TokenByte, byte(0))
 
 			resp, err := conn.Send(ctx, req)
 			if err != nil {
@@ -403,7 +403,7 @@ func TestConnection_Send_OnClosedConnection(t *testing.T) {
 	require.NoError(t, err)
 
 	// Close connection
-	conn.Close()
+	_ = conn.Close()
 	require.True(t, conn.IsClosed())
 
 	// Try to send
@@ -430,7 +430,7 @@ func TestConnection_Send_MissingActivityID(t *testing.T) {
 
 	conn, err := Dial(ctx, server.Address(), opts)
 	require.NoError(t, err)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	// Send request without activity ID
 	req := NewRequestMessage(ResourceDocument, OperationRead, uuid.Nil)
@@ -474,7 +474,7 @@ func TestConnection_Close_FailsPendingRequests(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// Close connection
-	conn.Close()
+	_ = conn.Close()
 
 	// Request should fail
 	select {
@@ -502,7 +502,7 @@ func TestConnection_Stats(t *testing.T) {
 
 	conn, err := Dial(ctx, server.Address(), opts)
 	require.NoError(t, err)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	// Check initial stats
 	stats := conn.Stats()
@@ -529,7 +529,7 @@ func TestConnection_IsIdle(t *testing.T) {
 
 	conn, err := Dial(ctx, server.Address(), opts)
 	require.NoError(t, err)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	// Just connected - should not be idle
 	require.False(t, conn.IsIdle(100*time.Millisecond))
@@ -559,7 +559,7 @@ func TestConnection_PendingRequests(t *testing.T) {
 
 	conn, err := Dial(ctx, server.Address(), opts)
 	require.NoError(t, err)
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	// No pending requests initially
 	require.Equal(t, 0, conn.PendingRequests())
@@ -567,7 +567,7 @@ func TestConnection_PendingRequests(t *testing.T) {
 	// Start a request in background
 	go func() {
 		req := NewRequestMessage(ResourceDocument, OperationRead, uuid.New())
-		conn.Send(ctx, req)
+		_, _ = conn.Send(ctx, req)
 	}()
 
 	// Wait for request to be registered

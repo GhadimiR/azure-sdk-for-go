@@ -108,10 +108,10 @@ func TestContextRequest_ComputeLength(t *testing.T) {
 func TestDecodeContextRequest_InvalidResourceOperationType(t *testing.T) {
 	var buf bytes.Buffer
 
-	binary.Write(&buf, binary.LittleEndian, uint32(RequestFrameLength))
-	binary.Write(&buf, binary.LittleEndian, uint16(ResourceDocument))
-	binary.Write(&buf, binary.LittleEndian, uint16(OperationRead))
-	WriteUUID(uuid.New(), &buf)
+	_ = binary.Write(&buf, binary.LittleEndian, uint32(RequestFrameLength))
+	_ = binary.Write(&buf, binary.LittleEndian, uint16(ResourceDocument))
+	_ = binary.Write(&buf, binary.LittleEndian, uint16(OperationRead))
+	_ = WriteUUID(uuid.New(), &buf)
 
 	_, err := DecodeContextRequest(bytes.NewReader(buf.Bytes()))
 	require.Error(t, err)
@@ -121,9 +121,9 @@ func TestDecodeContextRequest_InvalidResourceOperationType(t *testing.T) {
 func TestDecodeContextRequest_TooSmall(t *testing.T) {
 	var buf bytes.Buffer
 
-	binary.Write(&buf, binary.LittleEndian, uint32(10))
-	binary.Write(&buf, binary.LittleEndian, uint32(0))
-	WriteUUID(uuid.Nil, &buf)
+	_ = binary.Write(&buf, binary.LittleEndian, uint32(10))
+	_ = binary.Write(&buf, binary.LittleEndian, uint32(0))
+	_ = WriteUUID(uuid.Nil, &buf)
 
 	_, err := DecodeContextRequest(bytes.NewReader(buf.Bytes()))
 	require.Error(t, err)

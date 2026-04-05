@@ -108,7 +108,7 @@ func TestRefreshLocationAsyncForConnectivityIssue(t *testing.T) {
 
 	eastUSEndpoint, _ := url.Parse("https://testaccount-eastus.documents.azure.com:443/")
 	gem.MarkEndpointUnavailableForRead(eastUSEndpoint)
-	gem.RefreshLocationAsync(context.Background(), false)
+	_ = gem.RefreshLocationAsync(context.Background(), false)
 
 	locationCache = gem.GetLocationCache()
 	availableReadByLocation = locationCache.GetAvailableReadEndpointByLocation()
@@ -131,7 +131,7 @@ func TestRefreshLocationAsyncForConnectivityIssue(t *testing.T) {
 
 	eastAsiaEndpoint, _ := url.Parse("https://testaccount-eastasia.documents.azure.com:443/")
 	gem.MarkEndpointUnavailableForRead(eastAsiaEndpoint)
-	gem.RefreshLocationAsync(context.Background(), false)
+	_ = gem.RefreshLocationAsync(context.Background(), false)
 
 	availableReadByLocation = gem.GetLocationCache().GetAvailableReadEndpointByLocation()
 	if _, ok := availableReadByLocation["West US"]; !ok {
@@ -168,7 +168,7 @@ func TestRefreshLocationAsyncForConnectivityIssueWithPreferredLocation(t *testin
 
 	eastUSEndpoint, _ := url.Parse("https://testaccount-eastus.documents.azure.com:443/")
 	gem.MarkEndpointUnavailableForRead(eastUSEndpoint)
-	gem.RefreshLocationAsync(context.Background(), false)
+	_ = gem.RefreshLocationAsync(context.Background(), false)
 
 	locationCache := gem.GetLocationCache()
 	if len(locationCache.GetReadEndpoints()) != 2 {
@@ -196,7 +196,7 @@ func TestRefreshLocationAsyncForConnectivityIssueWithPreferredLocation(t *testin
 
 	eastAsiaEndpoint, _ := url.Parse("https://testaccount-eastasia.documents.azure.com:443/")
 	gem.MarkEndpointUnavailableForRead(eastAsiaEndpoint)
-	gem.RefreshLocationAsync(context.Background(), false)
+	_ = gem.RefreshLocationAsync(context.Background(), false)
 
 	availableReadByLocation = gem.GetLocationCache().GetAvailableReadEndpointByLocation()
 	if _, ok := availableReadByLocation["West US"]; !ok {
@@ -232,7 +232,7 @@ func TestRefreshLocationAsyncForWriteForbidden(t *testing.T) {
 
 	eastUSEndpoint, _ := url.Parse("https://testaccount-eastus.documents.azure.com:443/")
 	gem.MarkEndpointUnavailableForWrite(eastUSEndpoint)
-	gem.RefreshLocationAsync(context.Background(), true)
+	_ = gem.RefreshLocationAsync(context.Background(), true)
 
 	locationCache := gem.GetLocationCache()
 	if len(locationCache.GetReadEndpoints()) != 1 {
@@ -256,7 +256,7 @@ func TestRefreshLocationAsyncForWriteForbidden(t *testing.T) {
 
 	eastAsiaEndpoint, _ := url.Parse("https://testaccount-eastasia.documents.azure.com:443/")
 	gem.MarkEndpointUnavailableForWrite(eastAsiaEndpoint)
-	gem.RefreshLocationAsync(context.Background(), true)
+	_ = gem.RefreshLocationAsync(context.Background(), true)
 
 	locationCache = gem.GetLocationCache()
 	if len(locationCache.GetReadEndpoints()) != 1 {
@@ -292,7 +292,7 @@ func TestBackgroundRefreshForMultiMaster(t *testing.T) {
 		t.Fatalf("Init failed: %v", err)
 	}
 
-	gem.RefreshLocationAsync(context.Background(), false)
+	_ = gem.RefreshLocationAsync(context.Background(), false)
 
 	if gem.RefreshInBackground() {
 		t.Error("expected refreshInBackground to be false for multi-master")
