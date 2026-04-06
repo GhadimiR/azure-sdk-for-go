@@ -66,6 +66,10 @@ func newDatabaseAccountLocationsInfo(preferredLocations []string) *DatabaseAccou
 	}
 }
 
+// unavailableLocationExpirationTime is the TTL for entries in the unavailability map.
+// Endpoints marked unavailable will be eligible for retry after this duration.
+const unavailableLocationExpirationTime = 5 * time.Minute
+
 type LocationCache struct {
 	mu                                   sync.RWMutex
 	locationInfo                         *DatabaseAccountLocationsInfo
@@ -322,6 +326,16 @@ func (lc *LocationCache) CanUseMultipleWriteLocations() bool {
 	return lc.connectionPolicy.UsingMultipleWriteLocations && lc.enableMultipleWriteLocations
 }
 
+func (lc *LocationCache) refreshStaleEndpoints() {
+	lc.mu.Lock()
+	defer lc.mu.Unlock()
+	for endpoint, unavailableTime := range lc.locationUnavailabilityInfoByEndpoint {
+		if time.Since(unavailableTime) > unavailableLocationExpirationTime {
+			delete(lc.locationUnavailabilityInfoByEndpoint, endpoint)
+		}
+	}
+}
+
 type GlobalEndpointManager struct {
 	databaseAccountManager                    DatabaseAccountManagerInternal
 	connectionPolicy                          *ConnectionPolicy
@@ -463,6 +477,8 @@ func (gem *GlobalEndpointManager) StartRefreshLocationTimerAsync(ctx context.Con
 func (gem *GlobalEndpointManager) backgroundRefresh(ctx context.Context) {
 	_ = gem.refreshLocations(ctx)
 	gem.refreshInBackground.Store(false)
+
+	gem.locationCache.refreshStaleEndpoints()
 
 	shouldRefresh, canRefreshInBackground := gem.locationCache.shouldRefreshEndpoints()
 	if shouldRefresh && !canRefreshInBackground {
