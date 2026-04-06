@@ -25,7 +25,7 @@ func TestDefaultPoolOptions(t *testing.T) {
 	require.Equal(t, 10, opts.MaxConnectionsPerEndpoint)
 	require.Equal(t, 30, opts.MaxRequestsPerConnection)
 	require.Equal(t, 60*time.Second, opts.ConnectionAcquisitionTimeout)
-	require.Equal(t, time.Duration(0), opts.IdleConnectionTimeout)
+	require.Equal(t, 30*time.Minute, opts.IdleConnectionTimeout)
 	require.Equal(t, time.Hour, opts.IdleEndpointTimeout)
 	require.True(t, opts.HealthCheckOnAcquire)
 	require.True(t, opts.HealthCheckOnRelease)
