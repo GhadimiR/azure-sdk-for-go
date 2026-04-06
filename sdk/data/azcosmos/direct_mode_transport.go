@@ -18,8 +18,12 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/data/azcosmos/internal/rntbd"
+	"github.com/Azure/azure-sdk-for-go/sdk/internal/log"
 	"github.com/google/uuid"
 )
+
+// EventDirectMode contains logs related to Direct Mode transport and fallback.
+const EventDirectMode log.Event = "DirectMode"
 
 type directModeTransport struct {
 	endpointProvider *rntbd.EndpointProvider
@@ -70,6 +74,8 @@ func newDirectModeTransport(opts *DirectModeTransportOptions) *directModeTranspo
 
 func (t *directModeTransport) Do(req *http.Request) (*http.Response, error) {
 	if !t.shouldUseDirect(req) {
+		resType := req.Header.Get("x-ms-cosmos-resource-type")
+		log.Writef(EventDirectMode, "Fallback: shouldUseDirect=false resType=%s path=%s", resType, req.URL.Path)
 		return t.fallbackWithCleanHeaders(req)
 	}
 
@@ -80,10 +86,14 @@ func (t *directModeTransport) Do(req *http.Request) (*http.Response, error) {
 
 	addresses, err := t.resolveAddresses(req.Context(), req)
 	if err != nil {
+		log.Writef(EventDirectMode, "Fallback: resolveAddresses error=%v path=%s", err, req.URL.Path)
 		return t.fallbackWithCleanHeaders(req)
 	}
 
 	if len(addresses) == 0 {
+		collectionRid := req.Header.Get("x-ms-cosmos-collection-rid")
+		pkRangeID := req.Header.Get("x-ms-documentdb-partitionkeyrangeid")
+		log.Writef(EventDirectMode, "Fallback: no addresses collectionRid=%q pkRangeID=%q path=%s", collectionRid, pkRangeID, req.URL.Path)
 		return t.fallbackWithCleanHeaders(req)
 	}
 
@@ -268,7 +278,6 @@ func (t *directModeTransport) sendToEndpoint(ctx context.Context, addr *url.URL,
 	}
 	defer conn.Release()
 
-	// Java SDK strips trailing slash from replica path (see RntbdRequestArgs line 59)
 	svcReq.ReplicaPath = strings.TrimSuffix(addr.Path, "/")
 
 	reqMsg, err := rntbd.BuildRequestMessage(svcReq)
@@ -352,13 +361,22 @@ func (t *directModeTransport) Close() error {
 	return t.endpointProvider.Close()
 }
 
+type addressCacheEntry struct {
+	addresses []*url.URL
+	createdAt time.Time
+}
+
 type gatewayAddressResolver struct {
 	client      *http.Client
 	accountHost string
 	cred        *KeyCredential
 
-	mu    sync.RWMutex
-	cache map[string][]*url.URL
+	mu        sync.RWMutex
+	cache     map[string]*addressCacheEntry
+	ttl       time.Duration
+	maxSize   int
+	closeCh   chan struct{}
+	closeOnce sync.Once
 }
 
 // GatewayAddressResolverOptions configures the gateway-based address resolver.
@@ -380,12 +398,49 @@ func newGatewayAddressResolver(opts *GatewayAddressResolverOptions) *gatewayAddr
 		client = http.DefaultClient
 	}
 
-	return &gatewayAddressResolver{
+	r := &gatewayAddressResolver{
 		client:      client,
 		accountHost: opts.AccountHost,
 		cred:        opts.Credential,
-		cache:       make(map[string][]*url.URL),
+		cache:       make(map[string]*addressCacheEntry),
+		ttl:         5 * time.Minute,
+		maxSize:     1000,
+		closeCh:     make(chan struct{}),
 	}
+	go r.cleanupLoop()
+	return r
+}
+
+func (r *gatewayAddressResolver) cleanupLoop() {
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			r.evictExpired()
+		case <-r.closeCh:
+			return
+		}
+	}
+}
+
+func (r *gatewayAddressResolver) evictExpired() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	now := time.Now()
+	for key, entry := range r.cache {
+		if now.Sub(entry.createdAt) > r.ttl {
+			delete(r.cache, key)
+		}
+	}
+}
+
+func (r *gatewayAddressResolver) Close() {
+	r.closeOnce.Do(func() {
+		close(r.closeCh)
+	})
 }
 
 func (r *gatewayAddressResolver) Resolve(ctx context.Context, req *http.Request) ([]*url.URL, error) {
@@ -393,19 +448,19 @@ func (r *gatewayAddressResolver) Resolve(ctx context.Context, req *http.Request)
 	collectionRid := req.Header.Get("x-ms-cosmos-collection-rid")
 
 	if collectionRid == "" || pkRangeID == "" {
+		log.Writef(EventDirectMode, "AddressResolver: missing headers collectionRid=%q pkRangeID=%q path=%s", collectionRid, pkRangeID, req.URL.Path)
 		return nil, nil
 	}
 
-	// Extract the resource path from the request URL (e.g., "dbs/dbName/colls/collName/docs")
 	resourcePath := strings.TrimPrefix(req.URL.Path, "/")
 
 	cacheKey := collectionRid + ":" + pkRangeID
 
 	r.mu.RLock()
-	addresses, ok := r.cache[cacheKey]
+	entry, ok := r.cache[cacheKey]
 	r.mu.RUnlock()
-	if ok {
-		return addresses, nil
+	if ok && time.Since(entry.createdAt) <= r.ttl {
+		return entry.addresses, nil
 	}
 
 	addresses, err := r.fetchAddresses(ctx, collectionRid, pkRangeID, resourcePath)
@@ -414,10 +469,32 @@ func (r *gatewayAddressResolver) Resolve(ctx context.Context, req *http.Request)
 	}
 
 	r.mu.Lock()
-	r.cache[cacheKey] = addresses
+	r.cache[cacheKey] = &addressCacheEntry{
+		addresses: addresses,
+		createdAt: time.Now(),
+	}
+	if len(r.cache) > r.maxSize {
+		r.evictOldestLocked()
+	}
 	r.mu.Unlock()
 
 	return addresses, nil
+}
+
+func (r *gatewayAddressResolver) evictOldestLocked() {
+	var oldestKey string
+	var oldestTime time.Time
+
+	for key, entry := range r.cache {
+		if oldestKey == "" || entry.createdAt.Before(oldestTime) {
+			oldestKey = key
+			oldestTime = entry.createdAt
+		}
+	}
+
+	if oldestKey != "" {
+		delete(r.cache, oldestKey)
+	}
 }
 
 func (r *gatewayAddressResolver) fetchAddresses(ctx context.Context, collectionRid, pkRangeID, resourcePath string) ([]*url.URL, error) {
@@ -495,7 +572,7 @@ func (r *gatewayAddressResolver) InvalidateCache(collectionRid, pkRangeID string
 func (r *gatewayAddressResolver) ClearCache() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.cache = make(map[string][]*url.URL)
+	r.cache = make(map[string]*addressCacheEntry)
 }
 
 func (r *gatewayAddressResolver) extractCollectionPath(resourcePath string, collectionRid string) string {

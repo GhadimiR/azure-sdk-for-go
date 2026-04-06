@@ -634,6 +634,11 @@ func (c *ContainerClient) executeQueryViaGateway(query string, queryOptions *Que
 				}
 			}
 
+			h := operationContext.headerOptionsOverride
+			if h != nil && h.partitionKey != nil {
+				c.applyDirectModeRouting(ctx, h.partitionKey, h)
+			}
+
 			azResponse, err := c.database.client.sendQueryRequest(
 				path,
 				ctx,

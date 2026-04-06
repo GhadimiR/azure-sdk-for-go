@@ -64,7 +64,7 @@ func DefaultPoolOptions() *PoolOptions {
 		MaxConnectionsPerEndpoint:    10,
 		MaxRequestsPerConnection:     30,
 		ConnectionAcquisitionTimeout: 60 * time.Second,
-		IdleConnectionTimeout:        0, // Use server value
+		IdleConnectionTimeout:        30 * time.Minute, // Default to 30 minutes to enable idle connection eviction
 		IdleEndpointTimeout:          time.Hour,
 		HealthCheckOnAcquire:         true,
 		HealthCheckOnRelease:         true,

@@ -8,17 +8,24 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/Azure/azure-sdk-for-go/sdk/internal/log"
 )
 
 const (
-	minEffectivePartitionKey = ""
-	maxEffectivePartitionKey = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+	minEffectivePartitionKey    = ""
+	maxEffectivePartitionKey    = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+	routingCacheMaxSize         = 1000
+	routingCacheCleanupInterval = 1 * time.Minute
 )
 
 type directModeRoutingCache struct {
-	mu      sync.RWMutex
-	entries map[string]*routingCacheEntry
-	ttl     time.Duration
+	mu        sync.RWMutex
+	entries   map[string]*routingCacheEntry
+	ttl       time.Duration
+	maxSize   int
+	closeCh   chan struct{}
+	closeOnce sync.Once
 }
 
 type routingCacheEntry struct {
@@ -29,10 +36,50 @@ type routingCacheEntry struct {
 }
 
 func newDirectModeRoutingCache(ttl time.Duration) *directModeRoutingCache {
-	return &directModeRoutingCache{
+	c := &directModeRoutingCache{
 		entries: make(map[string]*routingCacheEntry),
 		ttl:     ttl,
+		maxSize: routingCacheMaxSize,
+		closeCh: make(chan struct{}),
 	}
+	go c.cleanupLoop()
+	return c
+}
+
+func (c *directModeRoutingCache) cleanupLoop() {
+	ticker := time.NewTicker(routingCacheCleanupInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			c.evictExpired()
+		case <-c.closeCh:
+			return
+		}
+	}
+}
+
+func (c *directModeRoutingCache) evictExpired() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.ttl <= 0 {
+		return
+	}
+
+	now := time.Now()
+	for key, entry := range c.entries {
+		if now.Sub(entry.createdAt) > c.ttl {
+			delete(c.entries, key)
+		}
+	}
+}
+
+func (c *directModeRoutingCache) Close() {
+	c.closeOnce.Do(func() {
+		close(c.closeCh)
+	})
 }
 
 func routingCacheKey(databaseName, containerName string) string {
@@ -63,6 +110,26 @@ func (c *directModeRoutingCache) set(databaseName, containerName string, entry *
 	key := routingCacheKey(databaseName, containerName)
 	entry.createdAt = time.Now()
 	c.entries[key] = entry
+
+	if len(c.entries) > c.maxSize {
+		c.evictOldestLocked()
+	}
+}
+
+func (c *directModeRoutingCache) evictOldestLocked() {
+	var oldestKey string
+	var oldestTime time.Time
+
+	for key, entry := range c.entries {
+		if oldestKey == "" || entry.createdAt.Before(oldestTime) {
+			oldestKey = key
+			oldestTime = entry.createdAt
+		}
+	}
+
+	if oldestKey != "" {
+		delete(c.entries, oldestKey)
+	}
 }
 
 type directModeRouter struct {
@@ -110,11 +177,13 @@ func (r *directModeRouter) resolve(
 func (r *directModeRouter) fetchAndCache(ctx context.Context, container *ContainerClient) (*routingCacheEntry, error) {
 	containerResp, err := container.Read(ctx, nil)
 	if err != nil {
+		log.Writef(EventDirectMode, "FetchAndCache: container.Read failed db=%s container=%s err=%v", container.database.id, container.id, err)
 		return nil, err
 	}
 
 	pkRangesResp, err := container.getPartitionKeyRanges(ctx, nil)
 	if err != nil {
+		log.Writef(EventDirectMode, "FetchAndCache: getPartitionKeyRanges failed db=%s container=%s err=%v", container.database.id, container.id, err)
 		return nil, err
 	}
 
