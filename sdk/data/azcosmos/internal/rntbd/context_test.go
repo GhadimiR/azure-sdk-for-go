@@ -8,12 +8,11 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
 func TestContextRequest_NewContextRequest(t *testing.T) {
-	activityID := uuid.MustParse("12345678-1234-1234-1234-123456789abc")
+	activityID := MustParseUUID("12345678-1234-1234-1234-123456789abc")
 	userAgent := "azcosmos-go/1.0.0"
 
 	req := NewContextRequest(activityID, userAgent)
@@ -27,7 +26,7 @@ func TestContextRequest_NewContextRequest(t *testing.T) {
 }
 
 func TestContextRequest_Encode_WireFormat(t *testing.T) {
-	activityID := uuid.MustParse("12345678-1234-1234-1234-123456789abc")
+	activityID := MustParseUUID("12345678-1234-1234-1234-123456789abc")
 	req := NewContextRequest(activityID, "test-agent")
 
 	data, err := req.EncodeToBytes()
@@ -52,27 +51,27 @@ func TestContextRequest_Encode_WireFormat(t *testing.T) {
 func TestContextRequest_RoundTrip(t *testing.T) {
 	testCases := []struct {
 		name       string
-		activityID uuid.UUID
+		activityID UUID
 		userAgent  string
 	}{
 		{
 			name:       "basic",
-			activityID: uuid.MustParse("11111111-1111-1111-1111-111111111111"),
+			activityID: MustParseUUID("11111111-1111-1111-1111-111111111111"),
 			userAgent:  "azcosmos-go/1.0.0",
 		},
 		{
 			name:       "long user agent",
-			activityID: uuid.MustParse("22222222-2222-2222-2222-222222222222"),
+			activityID: MustParseUUID("22222222-2222-2222-2222-222222222222"),
 			userAgent:  "azcosmos-go/1.0.0 (Linux; x86_64) azure-cosmos-dotnet-sdk/3.0.0",
 		},
 		{
 			name:       "nil UUID",
-			activityID: uuid.Nil,
+			activityID: Nil,
 			userAgent:  "test",
 		},
 		{
 			name:       "random UUID",
-			activityID: uuid.New(),
+			activityID: MustNewUUID(),
 			userAgent:  "agent",
 		},
 	}
@@ -96,7 +95,7 @@ func TestContextRequest_RoundTrip(t *testing.T) {
 }
 
 func TestContextRequest_ComputeLength(t *testing.T) {
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	req := NewContextRequest(activityID, "test-agent")
 
 	computedLength := req.ComputeLength()
@@ -111,7 +110,7 @@ func TestDecodeContextRequest_InvalidResourceOperationType(t *testing.T) {
 	_ = binary.Write(&buf, binary.LittleEndian, uint32(RequestFrameLength))
 	_ = binary.Write(&buf, binary.LittleEndian, uint16(ResourceDocument))
 	_ = binary.Write(&buf, binary.LittleEndian, uint16(OperationRead))
-	_ = WriteUUID(uuid.New(), &buf)
+	_ = WriteUUID(MustNewUUID(), &buf)
 
 	_, err := DecodeContextRequest(bytes.NewReader(buf.Bytes()))
 	require.Error(t, err)
@@ -123,7 +122,7 @@ func TestDecodeContextRequest_TooSmall(t *testing.T) {
 
 	_ = binary.Write(&buf, binary.LittleEndian, uint32(10))
 	_ = binary.Write(&buf, binary.LittleEndian, uint32(0))
-	_ = WriteUUID(uuid.Nil, &buf)
+	_ = WriteUUID(Nil, &buf)
 
 	_, err := DecodeContextRequest(bytes.NewReader(buf.Bytes()))
 	require.Error(t, err)
@@ -131,7 +130,7 @@ func TestDecodeContextRequest_TooSmall(t *testing.T) {
 }
 
 func TestContext_NewContext(t *testing.T) {
-	req := NewContextRequest(uuid.New(), "test-agent")
+	req := NewContextRequest(MustNewUUID(), "test-agent")
 	ctx := ContextFrom(req, "cosmos-server", "1.0.0", 200)
 
 	require.NotNil(t, ctx)
@@ -204,7 +203,7 @@ func TestContext_RoundTrip(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			activityID := uuid.New()
+			activityID := MustNewUUID()
 			original := &Context{
 				ActivityID:                      activityID,
 				Status:                          tc.status,
@@ -249,7 +248,7 @@ func TestDecodeContext_ErrorStatus_ReturnsContextException(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			activityID := uuid.New()
+			activityID := MustNewUUID()
 			ctx := &Context{
 				ActivityID:    activityID,
 				Status:        tc.status,
@@ -275,7 +274,7 @@ func TestDecodeContext_ErrorStatus_ReturnsContextException(t *testing.T) {
 }
 
 func TestContextException_Error(t *testing.T) {
-	activityID := uuid.MustParse("12345678-1234-1234-1234-123456789abc")
+	activityID := MustParseUUID("12345678-1234-1234-1234-123456789abc")
 	err := &ContextException{
 		Status:     401,
 		ActivityID: activityID,
@@ -288,7 +287,7 @@ func TestContextException_Error(t *testing.T) {
 }
 
 func TestContextException_ErrorWithDetails(t *testing.T) {
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	err := &ContextException{
 		Status:     400,
 		ActivityID: activityID,
@@ -330,7 +329,7 @@ func TestIsContextException(t *testing.T) {
 }
 
 func TestContextFrom(t *testing.T) {
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	req := NewContextRequest(activityID, "test-agent")
 
 	ctx := ContextFrom(req, "server", "1.0", 200)
@@ -346,7 +345,7 @@ func TestContextFrom(t *testing.T) {
 }
 
 func TestContextRequest_HeaderTokenTypes(t *testing.T) {
-	req := NewContextRequest(uuid.New(), "test")
+	req := NewContextRequest(MustNewUUID(), "test")
 	ts := req.Headers.toTokenStream()
 
 	protocolToken := ts.Get(uint16(ContextRequestHeaderProtocolVersion))

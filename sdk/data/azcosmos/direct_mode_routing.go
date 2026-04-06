@@ -142,6 +142,12 @@ func newDirectModeRouter(cacheTTL time.Duration) *directModeRouter {
 	}
 }
 
+func (r *directModeRouter) Close() {
+	if r.cache != nil {
+		r.cache.Close()
+	}
+}
+
 type routingInfo struct {
 	collectionRID         string
 	partitionKeyRangeID   string

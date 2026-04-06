@@ -6,12 +6,11 @@ package rntbd
 import (
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
 func TestParseResponseMessage_BasicResponse(t *testing.T) {
-	activityID := uuid.MustParse("12345678-1234-5678-1234-567812345678")
+	activityID := MustParseUUID("12345678-1234-5678-1234-567812345678")
 	msg := NewResponseMessage(200, activityID)
 
 	resp, err := ParseResponseMessage(msg, "https://test.cosmos.azure.com")
@@ -25,7 +24,7 @@ func TestParseResponseMessage_BasicResponse(t *testing.T) {
 }
 
 func TestParseResponseMessage_ErrorResponse(t *testing.T) {
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	msg := NewResponseMessage(404, activityID)
 
 	resp, err := ParseResponseMessage(msg, "https://test.cosmos.azure.com")
@@ -36,7 +35,7 @@ func TestParseResponseMessage_ErrorResponse(t *testing.T) {
 }
 
 func TestParseResponseMessage_WithPayload(t *testing.T) {
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	payload := []byte(`{"id":"doc1","content":"test"}`)
 
 	msg := NewResponseMessage(200, activityID)
@@ -50,7 +49,7 @@ func TestParseResponseMessage_WithPayload(t *testing.T) {
 }
 
 func TestParseResponseMessage_RequestCharge(t *testing.T) {
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	msg := NewResponseMessage(200, activityID)
 	msg.Headers.SetDouble(uint16(ResponseHeaderRequestCharge), 3.14)
 
@@ -62,7 +61,7 @@ func TestParseResponseMessage_RequestCharge(t *testing.T) {
 }
 
 func TestParseResponseMessage_SessionToken(t *testing.T) {
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	msg := NewResponseMessage(200, activityID)
 	msg.Headers.SetString(uint16(ResponseHeaderSessionToken), "0:1#1234#56=789")
 
@@ -74,7 +73,7 @@ func TestParseResponseMessage_SessionToken(t *testing.T) {
 }
 
 func TestParseResponseMessage_LSN(t *testing.T) {
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	msg := NewResponseMessage(200, activityID)
 	msg.Headers.SetLongLong(uint16(ResponseHeaderLSN), 12345)
 
@@ -86,7 +85,7 @@ func TestParseResponseMessage_LSN(t *testing.T) {
 }
 
 func TestParseResponseMessage_ItemCount(t *testing.T) {
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	msg := NewResponseMessage(200, activityID)
 	msg.Headers.SetULong(uint16(ResponseHeaderItemCount), 42)
 
@@ -98,7 +97,7 @@ func TestParseResponseMessage_ItemCount(t *testing.T) {
 }
 
 func TestParseResponseMessage_Continuation(t *testing.T) {
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	continuationToken := `{"token":"abc123","range":{"min":"","max":"FF"}}`
 
 	msg := NewResponseMessage(200, activityID)
@@ -112,7 +111,7 @@ func TestParseResponseMessage_Continuation(t *testing.T) {
 }
 
 func TestParseResponseMessage_ETag(t *testing.T) {
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	msg := NewResponseMessage(200, activityID)
 	msg.Headers.SetString(uint16(ResponseHeaderETag), "\"etag-value-12345\"")
 
@@ -124,7 +123,7 @@ func TestParseResponseMessage_ETag(t *testing.T) {
 }
 
 func TestParseResponseMessage_SubStatus(t *testing.T) {
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	msg := NewResponseMessage(429, activityID)
 	msg.Headers.SetULong(uint16(ResponseHeaderSubStatus), 3200)
 
@@ -136,7 +135,7 @@ func TestParseResponseMessage_SubStatus(t *testing.T) {
 }
 
 func TestParseResponseMessage_RetryAfter(t *testing.T) {
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	msg := NewResponseMessage(429, activityID)
 	msg.Headers.SetULong(uint16(ResponseHeaderRetryAfterMilliseconds), 1000)
 
@@ -148,7 +147,7 @@ func TestParseResponseMessage_RetryAfter(t *testing.T) {
 }
 
 func TestParseResponseMessage_AllHeaders(t *testing.T) {
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	msg := NewResponseMessage(200, activityID)
 
 	msg.Headers.SetDouble(uint16(ResponseHeaderRequestCharge), 2.5)
@@ -180,7 +179,7 @@ func TestParseResponseMessage_AllHeaders(t *testing.T) {
 }
 
 func TestParseResponseMessage_RoundTrip(t *testing.T) {
-	activityID := uuid.MustParse("abcd1234-abcd-1234-abcd-1234abcd5678")
+	activityID := MustParseUUID("abcd1234-abcd-1234-abcd-1234abcd5678")
 	payload := []byte(`{"documents":[{"id":"1"}],"_count":1}`)
 
 	original := NewResponseMessage(200, activityID)
@@ -240,7 +239,7 @@ func TestIsRetriableStatus(t *testing.T) {
 }
 
 func TestGetResponseHeaderHelpers(t *testing.T) {
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	msg := NewResponseMessage(200, activityID)
 
 	msg.Headers.SetByte(uint16(ResponseHeaderPayloadPresent), 1)
@@ -281,7 +280,7 @@ func TestConvertTokenValueToString(t *testing.T) {
 }
 
 func TestParseResponseMessage_LongLSNValues(t *testing.T) {
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	msg := NewResponseMessage(200, activityID)
 
 	largeLSN := int64(9223372036854775807)
@@ -319,7 +318,7 @@ func TestParseResponseMessage_SubStatusMapping(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			activityID := uuid.New()
+			activityID := MustNewUUID()
 			msg := NewResponseMessage(tc.statusCode, activityID)
 			if tc.subStatus > 0 {
 				msg.Headers.SetULong(uint16(ResponseHeaderSubStatus), uint32(tc.subStatus))
@@ -335,7 +334,7 @@ func TestParseResponseMessage_SubStatusMapping(t *testing.T) {
 }
 
 func TestParseResponseMessage_GlobalCommittedLSN(t *testing.T) {
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	msg := NewResponseMessage(200, activityID)
 
 	msg.Headers.SetLongLong(uint16(ResponseHeaderLSN), 100)
@@ -349,7 +348,7 @@ func TestParseResponseMessage_GlobalCommittedLSN(t *testing.T) {
 }
 
 func TestParseResponseMessage_TransportRequestIDCorrelation(t *testing.T) {
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	msg := NewResponseMessage(200, activityID)
 
 	transportID := uint32(987654321)

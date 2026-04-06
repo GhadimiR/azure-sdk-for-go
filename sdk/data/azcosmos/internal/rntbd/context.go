@@ -9,8 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-
-	"github.com/google/uuid"
 )
 
 // -----------------------------------------------------------------------------
@@ -36,7 +34,7 @@ const ClientVersion = "2.0.0"
 //
 // ResourceType and OperationType are both "Connection" (0x0000).
 type ContextRequest struct {
-	ActivityID uuid.UUID
+	ActivityID UUID
 	Headers    *contextRequestHeaderValues
 }
 
@@ -48,7 +46,7 @@ type contextRequestHeaderValues struct {
 }
 
 // NewContextRequest creates a new context request with the given user agent.
-func NewContextRequest(activityID uuid.UUID, userAgent string) *ContextRequest {
+func NewContextRequest(activityID UUID, userAgent string) *ContextRequest {
 	return &ContextRequest{
 		ActivityID: activityID,
 		Headers: &contextRequestHeaderValues{
@@ -224,7 +222,7 @@ func decodeContextRequestHeaders(r io.Reader, length int) (*contextRequestHeader
 // This is received after sending a ContextRequest and contains
 // server capabilities and connection parameters.
 type Context struct {
-	ActivityID                      uuid.UUID
+	ActivityID                      UUID
 	Status                          int32
 	ProtocolVersion                 uint32
 	ClientVersion                   string
@@ -447,7 +445,7 @@ func decodeContextHeaders(r io.Reader, length int) (*contextHeaders, error) {
 // ContextException is returned when context negotiation fails.
 type ContextException struct {
 	Status          int32
-	ActivityID      uuid.UUID
+	ActivityID      UUID
 	Details         map[string]interface{}
 	ClientVersion   string
 	ProtocolVersion uint32

@@ -8,7 +8,6 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,7 +17,7 @@ import (
 
 func TestRequestFrame_Encode(t *testing.T) {
 	// Test encoding a basic request frame
-	activityID := uuid.MustParse("12345678-1234-1234-1234-123456789abc")
+	activityID := MustParseUUID("12345678-1234-1234-1234-123456789abc")
 
 	frame := &RequestFrame{
 		ResourceType:  ResourceDocument,
@@ -49,7 +48,7 @@ func TestRequestFrame_Encode(t *testing.T) {
 }
 
 func TestDecodeRequestFrame(t *testing.T) {
-	activityID := uuid.MustParse("abcdef12-3456-7890-abcd-ef1234567890")
+	activityID := MustParseUUID("abcdef12-3456-7890-abcd-ef1234567890")
 
 	// Manually construct the binary representation
 	var buf bytes.Buffer
@@ -78,37 +77,37 @@ func TestRequestFrame_RoundTrip(t *testing.T) {
 		name          string
 		resourceType  ResourceType
 		operationType OperationType
-		activityID    uuid.UUID
+		activityID    UUID
 	}{
 		{
 			name:          "document read",
 			resourceType:  ResourceDocument,
 			operationType: OperationRead,
-			activityID:    uuid.MustParse("11111111-1111-1111-1111-111111111111"),
+			activityID:    MustParseUUID("11111111-1111-1111-1111-111111111111"),
 		},
 		{
 			name:          "collection create",
 			resourceType:  ResourceCollection,
 			operationType: OperationCreate,
-			activityID:    uuid.MustParse("22222222-2222-2222-2222-222222222222"),
+			activityID:    MustParseUUID("22222222-2222-2222-2222-222222222222"),
 		},
 		{
 			name:          "database delete",
 			resourceType:  ResourceDatabase,
 			operationType: OperationDelete,
-			activityID:    uuid.MustParse("33333333-3333-3333-3333-333333333333"),
+			activityID:    MustParseUUID("33333333-3333-3333-3333-333333333333"),
 		},
 		{
 			name:          "sproc execute",
 			resourceType:  ResourceStoredProcedure,
 			operationType: OperationExecuteJavaScript,
-			activityID:    uuid.MustParse("44444444-4444-4444-4444-444444444444"),
+			activityID:    MustParseUUID("44444444-4444-4444-4444-444444444444"),
 		},
 		{
 			name:          "nil UUID",
 			resourceType:  ResourceDocument,
 			operationType: OperationRead,
-			activityID:    uuid.Nil,
+			activityID:    Nil,
 		},
 	}
 
@@ -142,7 +141,7 @@ func TestRequestFrame_RoundTrip(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func TestResponseFrame_Encode(t *testing.T) {
-	activityID := uuid.MustParse("12345678-1234-1234-1234-123456789abc")
+	activityID := MustParseUUID("12345678-1234-1234-1234-123456789abc")
 
 	frame := &ResponseFrame{
 		Length:     ResponseFrameLength + 100, // header + 100 bytes of tokens
@@ -172,7 +171,7 @@ func TestResponseFrame_Encode(t *testing.T) {
 }
 
 func TestDecodeResponseFrame(t *testing.T) {
-	activityID := uuid.MustParse("abcdef12-3456-7890-abcd-ef1234567890")
+	activityID := MustParseUUID("abcdef12-3456-7890-abcd-ef1234567890")
 
 	var buf bytes.Buffer
 
@@ -201,7 +200,7 @@ func TestDecodeResponseFrame_TooSmall(t *testing.T) {
 	// Write length smaller than minimum
 	_ = binary.Write(&buf, binary.LittleEndian, uint32(10)) // Less than ResponseFrameLength
 	_ = binary.Write(&buf, binary.LittleEndian, int32(200))
-	_ = WriteUUID(uuid.Nil, &buf)
+	_ = WriteUUID(Nil, &buf)
 
 	_, err := DecodeResponseFrame(&buf)
 	require.Error(t, err)
@@ -213,31 +212,31 @@ func TestResponseFrame_RoundTrip(t *testing.T) {
 		name       string
 		length     uint32
 		status     int32
-		activityID uuid.UUID
+		activityID UUID
 	}{
 		{
 			name:       "success",
 			length:     ResponseFrameLength,
 			status:     200,
-			activityID: uuid.MustParse("11111111-1111-1111-1111-111111111111"),
+			activityID: MustParseUUID("11111111-1111-1111-1111-111111111111"),
 		},
 		{
 			name:       "created",
 			length:     ResponseFrameLength + 100,
 			status:     201,
-			activityID: uuid.MustParse("22222222-2222-2222-2222-222222222222"),
+			activityID: MustParseUUID("22222222-2222-2222-2222-222222222222"),
 		},
 		{
 			name:       "not found",
 			length:     ResponseFrameLength + 50,
 			status:     404,
-			activityID: uuid.MustParse("33333333-3333-3333-3333-333333333333"),
+			activityID: MustParseUUID("33333333-3333-3333-3333-333333333333"),
 		},
 		{
 			name:       "server error",
 			length:     ResponseFrameLength + 200,
 			status:     500,
-			activityID: uuid.MustParse("44444444-4444-4444-4444-444444444444"),
+			activityID: MustParseUUID("44444444-4444-4444-4444-444444444444"),
 		},
 	}
 
@@ -356,7 +355,7 @@ func TestTokenStream_RoundTrip(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func TestNewRequestMessage(t *testing.T) {
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	msg := NewRequestMessage(ResourceDocument, OperationRead, activityID)
 
 	require.NotNil(t, msg)
@@ -370,7 +369,7 @@ func TestNewRequestMessage(t *testing.T) {
 }
 
 func TestRequestMessage_EncodeSimple(t *testing.T) {
-	activityID := uuid.MustParse("12345678-1234-1234-1234-123456789abc")
+	activityID := MustParseUUID("12345678-1234-1234-1234-123456789abc")
 	msg := NewRequestMessage(ResourceDocument, OperationRead, activityID)
 
 	// No headers, no payload
@@ -386,7 +385,7 @@ func TestRequestMessage_EncodeSimple(t *testing.T) {
 }
 
 func TestRequestMessage_EncodeWithHeaders(t *testing.T) {
-	activityID := uuid.MustParse("12345678-1234-1234-1234-123456789abc")
+	activityID := MustParseUUID("12345678-1234-1234-1234-123456789abc")
 	msg := NewRequestMessage(ResourceDocument, OperationRead, activityID)
 
 	// Add some headers
@@ -404,7 +403,7 @@ func TestRequestMessage_EncodeWithHeaders(t *testing.T) {
 }
 
 func TestRequestMessage_EncodeWithPayload(t *testing.T) {
-	activityID := uuid.MustParse("12345678-1234-1234-1234-123456789abc")
+	activityID := MustParseUUID("12345678-1234-1234-1234-123456789abc")
 	msg := NewRequestMessage(ResourceDocument, OperationCreate, activityID)
 
 	// Add payload
@@ -422,7 +421,7 @@ func TestRequestMessage_EncodeWithPayload(t *testing.T) {
 }
 
 func TestRequestMessage_RoundTrip(t *testing.T) {
-	activityID := uuid.MustParse("abcdef12-3456-7890-abcd-ef1234567890")
+	activityID := MustParseUUID("abcdef12-3456-7890-abcd-ef1234567890")
 	msg := NewRequestMessage(ResourceCollection, OperationQuery, activityID)
 
 	// Add headers
@@ -458,7 +457,7 @@ func TestRequestMessage_RoundTrip(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func TestNewResponseMessage(t *testing.T) {
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	msg := NewResponseMessage(200, activityID)
 
 	require.NotNil(t, msg)
@@ -471,7 +470,7 @@ func TestNewResponseMessage(t *testing.T) {
 }
 
 func TestResponseMessage_EncodeSimple(t *testing.T) {
-	activityID := uuid.MustParse("12345678-1234-1234-1234-123456789abc")
+	activityID := MustParseUUID("12345678-1234-1234-1234-123456789abc")
 	msg := NewResponseMessage(200, activityID)
 
 	// No headers, no payload
@@ -487,7 +486,7 @@ func TestResponseMessage_EncodeSimple(t *testing.T) {
 }
 
 func TestResponseMessage_EncodeWithHeaders(t *testing.T) {
-	activityID := uuid.MustParse("12345678-1234-1234-1234-123456789abc")
+	activityID := MustParseUUID("12345678-1234-1234-1234-123456789abc")
 	msg := NewResponseMessage(200, activityID)
 
 	// Add some headers
@@ -501,7 +500,7 @@ func TestResponseMessage_EncodeWithHeaders(t *testing.T) {
 }
 
 func TestResponseMessage_EncodeWithPayload(t *testing.T) {
-	activityID := uuid.MustParse("12345678-1234-1234-1234-123456789abc")
+	activityID := MustParseUUID("12345678-1234-1234-1234-123456789abc")
 	msg := NewResponseMessage(200, activityID)
 
 	// Add payload
@@ -519,7 +518,7 @@ func TestResponseMessage_EncodeWithPayload(t *testing.T) {
 }
 
 func TestResponseMessage_RoundTrip(t *testing.T) {
-	activityID := uuid.MustParse("fedcba98-7654-3210-fedc-ba9876543210")
+	activityID := MustParseUUID("fedcba98-7654-3210-fedc-ba9876543210")
 	msg := NewResponseMessage(201, activityID)
 
 	// Add headers
@@ -567,7 +566,7 @@ func TestResponseMessage_RoundTripErrorStatus(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			activityID := uuid.New()
+			activityID := MustNewUUID()
 			msg := NewResponseMessage(tc.status, activityID)
 
 			// Add error payload
@@ -593,21 +592,21 @@ func TestResponseMessage_RoundTripErrorStatus(t *testing.T) {
 
 func TestErrorFromResponse_Success(t *testing.T) {
 	// 2xx status codes should return nil
-	msg := NewResponseMessage(200, uuid.New())
+	msg := NewResponseMessage(200, MustNewUUID())
 	err := ErrorFromResponse(msg)
 	require.Nil(t, err)
 
-	msg = NewResponseMessage(201, uuid.New())
+	msg = NewResponseMessage(201, MustNewUUID())
 	err = ErrorFromResponse(msg)
 	require.Nil(t, err)
 
-	msg = NewResponseMessage(204, uuid.New())
+	msg = NewResponseMessage(204, MustNewUUID())
 	err = ErrorFromResponse(msg)
 	require.Nil(t, err)
 }
 
 func TestErrorFromResponse_BadRequest(t *testing.T) {
-	msg := NewResponseMessage(400, uuid.New())
+	msg := NewResponseMessage(400, MustNewUUID())
 	msg.Payload = []byte(`{"code": "BadRequest", "message": "Invalid request"}`)
 
 	err := ErrorFromResponse(msg)
@@ -620,21 +619,21 @@ func TestErrorFromResponse_BadRequest(t *testing.T) {
 }
 
 func TestErrorFromResponse_NotFound(t *testing.T) {
-	msg := NewResponseMessage(404, uuid.New())
+	msg := NewResponseMessage(404, MustNewUUID())
 	err := ErrorFromResponse(msg)
 	require.Error(t, err)
 	require.True(t, IsNotFound(err))
 }
 
 func TestErrorFromResponse_Conflict(t *testing.T) {
-	msg := NewResponseMessage(409, uuid.New())
+	msg := NewResponseMessage(409, MustNewUUID())
 	err := ErrorFromResponse(msg)
 	require.Error(t, err)
 	require.True(t, IsConflict(err))
 }
 
 func TestErrorFromResponse_Gone_Basic(t *testing.T) {
-	msg := NewResponseMessage(410, uuid.New())
+	msg := NewResponseMessage(410, MustNewUUID())
 	err := ErrorFromResponse(msg)
 	require.Error(t, err)
 	require.True(t, IsGone(err))
@@ -644,7 +643,7 @@ func TestErrorFromResponse_Gone_Basic(t *testing.T) {
 }
 
 func TestErrorFromResponse_Gone_InvalidPartition(t *testing.T) {
-	msg := NewResponseMessage(410, uuid.New())
+	msg := NewResponseMessage(410, MustNewUUID())
 	require.NoError(t, msg.Headers.SetValue(uint16(ResponseHeaderSubStatus), TokenULong, uint32(SubStatusNameCacheIsStale)))
 
 	err := ErrorFromResponse(msg)
@@ -656,7 +655,7 @@ func TestErrorFromResponse_Gone_InvalidPartition(t *testing.T) {
 }
 
 func TestErrorFromResponse_Gone_PartitionKeyRangeGone(t *testing.T) {
-	msg := NewResponseMessage(410, uuid.New())
+	msg := NewResponseMessage(410, MustNewUUID())
 	require.NoError(t, msg.Headers.SetValue(uint16(ResponseHeaderSubStatus), TokenULong, uint32(SubStatusPartitionKeyRangeGone)))
 
 	err := ErrorFromResponse(msg)
@@ -668,7 +667,7 @@ func TestErrorFromResponse_Gone_PartitionKeyRangeGone(t *testing.T) {
 }
 
 func TestErrorFromResponse_Gone_PartitionSplitting(t *testing.T) {
-	msg := NewResponseMessage(410, uuid.New())
+	msg := NewResponseMessage(410, MustNewUUID())
 	require.NoError(t, msg.Headers.SetValue(uint16(ResponseHeaderSubStatus), TokenULong, uint32(SubStatusCompletingSplit)))
 
 	err := ErrorFromResponse(msg)
@@ -680,7 +679,7 @@ func TestErrorFromResponse_Gone_PartitionSplitting(t *testing.T) {
 }
 
 func TestErrorFromResponse_Gone_PartitionMigrating(t *testing.T) {
-	msg := NewResponseMessage(410, uuid.New())
+	msg := NewResponseMessage(410, MustNewUUID())
 	require.NoError(t, msg.Headers.SetValue(uint16(ResponseHeaderSubStatus), TokenULong, uint32(SubStatusCompletingPartitionMigrate)))
 
 	err := ErrorFromResponse(msg)
@@ -692,7 +691,7 @@ func TestErrorFromResponse_Gone_PartitionMigrating(t *testing.T) {
 }
 
 func TestErrorFromResponse_TooManyRequests(t *testing.T) {
-	msg := NewResponseMessage(429, uuid.New())
+	msg := NewResponseMessage(429, MustNewUUID())
 	err := ErrorFromResponse(msg)
 	require.Error(t, err)
 	require.True(t, IsRequestRateTooLarge(err))
@@ -703,7 +702,7 @@ func TestErrorFromResponse_TooManyRequests(t *testing.T) {
 }
 
 func TestErrorFromResponse_ServiceUnavailable(t *testing.T) {
-	msg := NewResponseMessage(503, uuid.New())
+	msg := NewResponseMessage(503, MustNewUUID())
 	err := ErrorFromResponse(msg)
 	require.Error(t, err)
 	require.True(t, IsServiceUnavailable(err))
@@ -730,7 +729,7 @@ func TestError_IsRetriable(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			msg := NewResponseMessage(tc.status, uuid.New())
+			msg := NewResponseMessage(tc.status, MustNewUUID())
 			err := ErrorFromResponse(msg)
 			require.Error(t, err)
 			require.Equal(t, tc.retriable, IsRetriable(err))

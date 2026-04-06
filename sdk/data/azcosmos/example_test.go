@@ -108,17 +108,20 @@ func ExampleClientOptions_PreferredRegions() {
 func ExampleClientOptions_connectionModeDirect() {
 	endpoint, ok := os.LookupEnv("AZURE_COSMOS_ENDPOINT")
 	if !ok {
-		panic("AZURE_COSMOS_ENDPOINT could not be found")
+		fmt.Println("AZURE_COSMOS_ENDPOINT not set, skipping example")
+		return
 	}
 
 	key, ok := os.LookupEnv("AZURE_COSMOS_KEY")
 	if !ok {
-		panic("AZURE_COSMOS_KEY could not be found")
+		fmt.Println("AZURE_COSMOS_KEY not set, skipping example")
+		return
 	}
 
 	cred, err := azcosmos.NewKeyCredential(key)
 	if err != nil {
-		panic(err)
+		fmt.Printf("Failed to create credential: %v\n", err)
+		return
 	}
 
 	clientOptions := azcosmos.ClientOptions{
@@ -127,7 +130,8 @@ func ExampleClientOptions_connectionModeDirect() {
 
 	client, err := azcosmos.NewClientWithKey(endpoint, cred, &clientOptions)
 	if err != nil {
-		panic(err)
+		fmt.Printf("Failed to create client: %v\n", err)
+		return
 	}
 
 	fmt.Println(client)
@@ -136,17 +140,20 @@ func ExampleClientOptions_connectionModeDirect() {
 func ExampleClientOptions_connectionModeDirectWithOptions() {
 	endpoint, ok := os.LookupEnv("AZURE_COSMOS_ENDPOINT")
 	if !ok {
-		panic("AZURE_COSMOS_ENDPOINT could not be found")
+		fmt.Println("AZURE_COSMOS_ENDPOINT not set, skipping example")
+		return
 	}
 
 	key, ok := os.LookupEnv("AZURE_COSMOS_KEY")
 	if !ok {
-		panic("AZURE_COSMOS_KEY could not be found")
+		fmt.Println("AZURE_COSMOS_KEY not set, skipping example")
+		return
 	}
 
 	cred, err := azcosmos.NewKeyCredential(key)
 	if err != nil {
-		panic(err)
+		fmt.Printf("Failed to create credential: %v\n", err)
+		return
 	}
 
 	clientOptions := azcosmos.ClientOptions{
@@ -161,7 +168,8 @@ func ExampleClientOptions_connectionModeDirectWithOptions() {
 
 	client, err := azcosmos.NewClientWithKey(endpoint, cred, &clientOptions)
 	if err != nil {
-		panic(err)
+		fmt.Printf("Failed to create client: %v\n", err)
+		return
 	}
 
 	fmt.Println(client)

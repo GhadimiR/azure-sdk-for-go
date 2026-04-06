@@ -11,8 +11,6 @@ import (
 	"io"
 	"math"
 	"unicode/utf8"
-
-	"github.com/google/uuid"
 )
 
 // ErrCorruptedFrame indicates a protocol violation in the RNTBD frame.
@@ -40,7 +38,7 @@ func newCorruptedFrameError(format string, args ...interface{}) error {
 // -----------------------------------------------------------------------------
 
 // EmptyUUID represents a zero UUID.
-var EmptyUUID = uuid.UUID{}
+var EmptyUUID = UUID{}
 
 // EncodeUUID encodes a UUID in Microsoft GUID byte order.
 // Microsoft GUID format differs from standard UUID byte order:
@@ -48,7 +46,7 @@ var EmptyUUID = uuid.UUID{}
 // - Data2 (2 bytes): little-endian
 // - Data3 (2 bytes): little-endian
 // - Data4 (8 bytes): big-endian (last two shorts, then 4 bytes)
-func EncodeUUID(id uuid.UUID, out []byte) {
+func EncodeUUID(id UUID, out []byte) {
 	if len(out) < 16 {
 		panic("output buffer too small for UUID")
 	}
@@ -70,12 +68,12 @@ func EncodeUUID(id uuid.UUID, out []byte) {
 }
 
 // DecodeUUID decodes a UUID from Microsoft GUID byte order.
-func DecodeUUID(in []byte) (uuid.UUID, error) {
+func DecodeUUID(in []byte) (UUID, error) {
 	if len(in) < 16 {
 		return EmptyUUID, newCorruptedFrameError("invalid UUID length: %d", len(in))
 	}
 
-	var id uuid.UUID
+	var id UUID
 
 	// Data1 (bytes 0-3): read as little-endian uint32, write as big-endian
 	binary.BigEndian.PutUint32(id[0:4], binary.LittleEndian.Uint32(in[0:4]))
@@ -93,7 +91,7 @@ func DecodeUUID(in []byte) (uuid.UUID, error) {
 }
 
 // WriteUUID writes a UUID to an io.Writer in Microsoft GUID byte order.
-func WriteUUID(id uuid.UUID, w io.Writer) error {
+func WriteUUID(id UUID, w io.Writer) error {
 	var buf [16]byte
 	EncodeUUID(id, buf[:])
 	_, err := w.Write(buf[:])
@@ -101,7 +99,7 @@ func WriteUUID(id uuid.UUID, w io.Writer) error {
 }
 
 // ReadUUID reads a UUID from an io.Reader in Microsoft GUID byte order.
-func ReadUUID(r io.Reader) (uuid.UUID, error) {
+func ReadUUID(r io.Reader) (UUID, error) {
 	var buf [16]byte
 	if _, err := io.ReadFull(r, buf[:]); err != nil {
 		return EmptyUUID, err
@@ -445,7 +443,7 @@ func (c guidCodec) ComputeLength(_ interface{}) int { return 16 }
 func (c guidCodec) DefaultValue() interface{}       { return EmptyUUID }
 
 func (c guidCodec) IsValid(value interface{}) bool {
-	_, ok := value.(uuid.UUID)
+	_, ok := value.(UUID)
 	return ok
 }
 
@@ -462,7 +460,7 @@ func (c guidCodec) ReadSlice(r io.Reader) ([]byte, error) {
 }
 
 func (c guidCodec) Write(value interface{}, w io.Writer) error {
-	id, ok := value.(uuid.UUID)
+	id, ok := value.(UUID)
 	if !ok {
 		return fmt.Errorf("invalid GUID value type: %T", value)
 	}

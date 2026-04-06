@@ -6,12 +6,11 @@ package rntbd
 import (
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
 func TestBuildRequestMessage_BasicRequest(t *testing.T) {
-	activityID := uuid.MustParse("12345678-1234-5678-1234-567812345678")
+	activityID := MustParseUUID("12345678-1234-5678-1234-567812345678")
 	req := &ServiceRequest{
 		OperationType:   OperationRead,
 		ResourceType:    ResourceDocument,
@@ -34,7 +33,7 @@ func TestBuildRequestMessage_BasicRequest(t *testing.T) {
 }
 
 func TestBuildRequestMessage_WithPayload(t *testing.T) {
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	content := []byte(`{"id":"test","pk":"value"}`)
 	req := &ServiceRequest{
 		OperationType:   OperationCreate,
@@ -56,7 +55,7 @@ func TestBuildRequestMessage_WithPayload(t *testing.T) {
 }
 
 func TestBuildRequestMessage_NameBasedHeaders(t *testing.T) {
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	req := &ServiceRequest{
 		OperationType:   OperationRead,
 		ResourceType:    ResourceDocument,
@@ -100,7 +99,7 @@ func TestBuildRequestMessage_ConsistencyLevel(t *testing.T) {
 				ResourceType:    ResourceDocument,
 				ResourceAddress: "dbs/db1/colls/coll1/docs/doc1",
 				IsNameBased:     true,
-				ActivityID:      uuid.New(),
+				ActivityID:      MustNewUUID(),
 				Headers: map[string]string{
 					HTTPHeaderConsistencyLevel: tc.header,
 				},
@@ -121,7 +120,7 @@ func TestBuildRequestMessage_SessionToken(t *testing.T) {
 		ResourceType:    ResourceDocument,
 		ResourceAddress: "dbs/db1/colls/coll1/docs/doc1",
 		IsNameBased:     true,
-		ActivityID:      uuid.New(),
+		ActivityID:      MustNewUUID(),
 		Headers: map[string]string{
 			HTTPHeaderSessionToken: "0:1#1234#56=789",
 		},
@@ -140,7 +139,7 @@ func TestBuildRequestMessage_PartitionKey(t *testing.T) {
 		ResourceType:    ResourceDocument,
 		ResourceAddress: "dbs/db1/colls/coll1/docs/doc1",
 		IsNameBased:     true,
-		ActivityID:      uuid.New(),
+		ActivityID:      MustNewUUID(),
 		Headers: map[string]string{
 			HTTPHeaderPartitionKey: "[\"myPartitionKey\"]",
 		},
@@ -159,7 +158,7 @@ func TestBuildRequestMessage_WithTransportRequestID(t *testing.T) {
 		ResourceType:       ResourceDocument,
 		ResourceAddress:    "dbs/db1/colls/coll1/docs/doc1",
 		IsNameBased:        true,
-		ActivityID:         uuid.New(),
+		ActivityID:         MustNewUUID(),
 		Headers:            make(map[string]string),
 		TransportRequestID: 12345,
 	}
@@ -177,7 +176,7 @@ func TestBuildRequestMessage_WithReplicaPath(t *testing.T) {
 		ResourceType:    ResourceDocument,
 		ResourceAddress: "dbs/db1/colls/coll1/docs/doc1",
 		IsNameBased:     true,
-		ActivityID:      uuid.New(),
+		ActivityID:      MustNewUUID(),
 		Headers:         make(map[string]string),
 		ReplicaPath:     "rntbd://host:443/replica1",
 	}
@@ -200,7 +199,7 @@ func TestBuildRequestMessage_ResourceIDPath(t *testing.T) {
 		ResourceID:      testResourceID,
 		ResourceAddress: testResourceID,
 		IsNameBased:     false,
-		ActivityID:      uuid.New(),
+		ActivityID:      MustNewUUID(),
 		Headers:         make(map[string]string),
 	}
 
@@ -218,7 +217,7 @@ func TestBuildRequestMessage_PageSize(t *testing.T) {
 		ResourceType:    ResourceDocument,
 		ResourceAddress: "dbs/db1/colls/coll1",
 		IsNameBased:     true,
-		ActivityID:      uuid.New(),
+		ActivityID:      MustNewUUID(),
 		Headers: map[string]string{
 			HTTPHeaderPageSize: "100",
 		},
@@ -249,7 +248,7 @@ func TestBuildRequestMessage_IndexingDirective(t *testing.T) {
 				ResourceType:    ResourceDocument,
 				ResourceAddress: "dbs/db1/colls/coll1/docs",
 				IsNameBased:     true,
-				ActivityID:      uuid.New(),
+				ActivityID:      MustNewUUID(),
 				Headers: map[string]string{
 					HTTPHeaderIndexingDirective: tc.header,
 				},
@@ -270,7 +269,7 @@ func TestBuildRequestMessage_BooleanHeaders(t *testing.T) {
 		ResourceType:    ResourceDocument,
 		ResourceAddress: "dbs/db1/colls/coll1",
 		IsNameBased:     true,
-		ActivityID:      uuid.New(),
+		ActivityID:      MustNewUUID(),
 		Headers: map[string]string{
 			HTTPHeaderEnableScanInQuery:       "true",
 			HTTPHeaderPopulateQueryMetrics:    "true",
@@ -298,7 +297,7 @@ func TestBuildRequestMessage_Continuation(t *testing.T) {
 		ResourceType:    ResourceDocument,
 		ResourceAddress: "dbs/db1/colls/coll1",
 		IsNameBased:     true,
-		ActivityID:      uuid.New(),
+		ActivityID:      MustNewUUID(),
 		Headers: map[string]string{
 			HTTPHeaderContinuation: continuationToken,
 		},
@@ -312,7 +311,7 @@ func TestBuildRequestMessage_Continuation(t *testing.T) {
 }
 
 func TestBuildRequestMessage_RoundTrip(t *testing.T) {
-	activityID := uuid.MustParse("12345678-abcd-5678-abcd-567812345678")
+	activityID := MustParseUUID("12345678-abcd-5678-abcd-567812345678")
 	content := []byte(`{"id":"roundtrip","data":"test"}`)
 	req := &ServiceRequest{
 		OperationType:      OperationCreate,

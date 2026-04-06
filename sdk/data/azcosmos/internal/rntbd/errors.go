@@ -5,8 +5,6 @@ package rntbd
 
 import (
 	"fmt"
-
-	"github.com/google/uuid"
 )
 
 // -----------------------------------------------------------------------------
@@ -55,7 +53,7 @@ const (
 type RntbdError struct {
 	StatusCode    int32
 	SubStatusCode int64
-	ActivityID    uuid.UUID
+	ActivityID    UUID
 	Message       string
 	LSN           int64
 	PartitionID   string

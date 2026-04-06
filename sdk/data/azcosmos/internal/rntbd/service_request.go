@@ -7,8 +7,6 @@ import (
 	"encoding/base64"
 	"strconv"
 	"strings"
-
-	"github.com/google/uuid"
 )
 
 const (
@@ -141,7 +139,7 @@ type ServiceRequest struct {
 	ResourceID                string
 	ResourceAddress           string
 	IsNameBased               bool
-	ActivityID                uuid.UUID
+	ActivityID                UUID
 	Headers                   map[string]string
 	Content                   []byte
 	Continuation              string
@@ -165,12 +163,19 @@ func NewServiceRequest(
 	if headers == nil {
 		headers = make(map[string]string)
 	}
+	// NewUUID uses the internal SDK uuid which is cryptographically secure.
+	// Error is extremely unlikely (only on crypto/rand failure), so we use
+	// a zero UUID as fallback to avoid changing the function signature.
+	activityID, err := NewUUID()
+	if err != nil {
+		activityID = Nil
+	}
 	return &ServiceRequest{
 		OperationType:   opType,
 		ResourceType:    resType,
 		ResourceAddress: resourceAddress,
 		Headers:         headers,
-		ActivityID:      uuid.New(),
+		ActivityID:      activityID,
 		IsNameBased:     strings.HasPrefix(resourceAddress, "/dbs/") || strings.HasPrefix(resourceAddress, "dbs/"),
 	}
 }
@@ -206,13 +211,13 @@ func (r *ServiceRequest) GetDefaultReplicaIndex() *int {
 
 type StoreResponse struct {
 	StatusCode int
-	ActivityID uuid.UUID
+	ActivityID UUID
 	Headers    map[string]string
 	Content    []byte
 	Endpoint   string
 }
 
-func NewStoreResponse(statusCode int, activityID uuid.UUID, endpoint string) *StoreResponse {
+func NewStoreResponse(statusCode int, activityID UUID, endpoint string) *StoreResponse {
 	return &StoreResponse{
 		StatusCode: statusCode,
 		ActivityID: activityID,

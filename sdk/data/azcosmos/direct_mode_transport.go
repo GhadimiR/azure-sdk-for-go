@@ -19,7 +19,6 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/data/azcosmos/internal/rntbd"
 	"github.com/Azure/azure-sdk-for-go/sdk/internal/log"
-	"github.com/google/uuid"
 )
 
 // EventDirectMode contains logs related to Direct Mode transport and fallback.
@@ -141,15 +140,15 @@ func (t *directModeTransport) shouldUseDirect(req *http.Request) bool {
 
 func (t *directModeTransport) httpToServiceRequest(req *http.Request) (*rntbd.ServiceRequest, error) {
 	activityIDStr := req.Header.Get("x-ms-activity-id")
-	var activityID uuid.UUID
+	var activityID rntbd.UUID
 	if activityIDStr != "" {
 		var err error
-		activityID, err = uuid.Parse(activityIDStr)
+		activityID, err = rntbd.ParseUUID(activityIDStr)
 		if err != nil {
-			activityID = uuid.New()
+			activityID, _ = rntbd.NewUUID()
 		}
 	} else {
-		activityID = uuid.New()
+		activityID, _ = rntbd.NewUUID()
 	}
 
 	opType := t.httpMethodToOperationType(req.Method, req.Header)
@@ -358,7 +357,19 @@ func (t *directModeTransport) Close() error {
 	}
 	t.closed = true
 
-	return t.endpointProvider.Close()
+	var errs []error
+	if err := t.endpointProvider.Close(); err != nil {
+		errs = append(errs, err)
+	}
+
+	// Close addressResolver if it implements io.Closer
+	if closer, ok := t.addressResolver.(interface{ Close() error }); ok {
+		if err := closer.Close(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errors.Join(errs...)
 }
 
 type addressCacheEntry struct {

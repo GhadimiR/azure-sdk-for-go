@@ -14,8 +14,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // -----------------------------------------------------------------------------
@@ -71,7 +69,7 @@ func DefaultConnectionOptions() *ConnectionOptions {
 // pendingRequest tracks an in-flight request awaiting a response.
 type pendingRequest struct {
 	transportRequestID uint32
-	activityID         uuid.UUID
+	activityID         UUID
 	responseCh         chan *ResponseMessage
 	errCh              chan error
 	deadline           time.Time
@@ -204,7 +202,10 @@ func Dial(ctx context.Context, address *url.URL, opts *ConnectionOptions) (*Conn
 // negotiateContext performs the RNTBD context negotiation handshake.
 func (c *Connection) negotiateContext(ctx context.Context) error {
 	// Create context request
-	activityID := uuid.New()
+	activityID, err := NewUUID()
+	if err != nil {
+		return fmt.Errorf("failed to generate activity ID: %w", err)
+	}
 	req := NewContextRequest(activityID, c.options.UserAgent)
 
 	// Encode and send
@@ -297,13 +298,16 @@ func (c *Connection) Send(ctx context.Context, req *RequestMessage) (*ResponseMe
 	}
 
 	activityID := req.Frame.ActivityID
-	if activityID == uuid.Nil {
+	if activityID == Nil {
 		return nil, errors.New("rntbd: request must have an ActivityID")
 	}
 
 	// Assign a monotonic transport request ID for response dispatching
 	transportID := c.nextTransportReqID.Add(1)
-	_ = req.Headers.SetValue(uint16(RequestHeaderTransportRequestID), TokenULong, transportID)
+	if err := req.Headers.SetValue(uint16(RequestHeaderTransportRequestID), TokenULong, transportID); err != nil {
+		c.errorCount.Add(1)
+		return nil, fmt.Errorf("rntbd: failed to set transport request ID header: %w", err)
+	}
 
 	// Determine deadline
 	deadline, hasDeadline := ctx.Deadline()

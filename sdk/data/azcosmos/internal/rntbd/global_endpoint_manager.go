@@ -6,6 +6,7 @@ package rntbd
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/url"
 	"sync"
 	"sync/atomic"
@@ -435,6 +436,9 @@ func (gem *GlobalEndpointManager) refreshLocations(ctx context.Context) error {
 	databaseAccount, err := gem.databaseAccountManager.GetDatabaseAccountFromEndpoint(ctx, serviceEndpoint)
 	if err != nil {
 		return err
+	}
+	if databaseAccount == nil {
+		return errors.New("failed to retrieve database account from endpoint")
 	}
 
 	gem.locationCache.OnDatabaseAccountRead(databaseAccount)

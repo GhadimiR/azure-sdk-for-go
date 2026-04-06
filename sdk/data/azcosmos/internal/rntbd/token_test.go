@@ -9,19 +9,18 @@ import (
 	"math"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
 func TestEncodeDecodeUUID(t *testing.T) {
 	tests := []struct {
 		name string
-		uuid uuid.UUID
+		uuid UUID
 	}{
 		{"empty", EmptyUUID},
-		{"random1", uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")},
-		{"random2", uuid.MustParse("6ba7b810-9dad-11d1-80b4-00c04fd430c8")},
-		{"max", uuid.MustParse("ffffffff-ffff-ffff-ffff-ffffffffffff")},
+		{"random1", MustParseUUID("550e8400-e29b-41d4-a716-446655440000")},
+		{"random2", MustParseUUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")},
+		{"max", MustParseUUID("ffffffff-ffff-ffff-ffff-ffffffffffff")},
 	}
 
 	for _, tt := range tests {
@@ -37,7 +36,7 @@ func TestEncodeDecodeUUID(t *testing.T) {
 }
 
 func TestUUIDMicrosoftGUIDByteOrder(t *testing.T) {
-	id := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	id := MustParseUUID("550e8400-e29b-41d4-a716-446655440000")
 
 	var buf [16]byte
 	EncodeUUID(id, buf[:])
@@ -238,11 +237,11 @@ func TestGuidCodecRoundtrip(t *testing.T) {
 
 	tests := []struct {
 		name  string
-		value uuid.UUID
+		value UUID
 	}{
 		{"empty", EmptyUUID},
-		{"random", uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")},
-		{"another", uuid.MustParse("6ba7b810-9dad-11d1-80b4-00c04fd430c8")},
+		{"random", MustParseUUID("550e8400-e29b-41d4-a716-446655440000")},
+		{"another", MustParseUUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")},
 	}
 
 	for _, tt := range tests {
@@ -532,7 +531,7 @@ func TestTokenRoundtrip(t *testing.T) {
 		{"ushort_token", 0x0002, TokenUShort, uint16(1000)},
 		{"ulong_token", 0x0003, TokenULong, uint32(100000)},
 		{"string_token", 0x0004, TokenSmallString, "hello"},
-		{"guid_token", 0x0005, TokenGuid, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")},
+		{"guid_token", 0x0005, TokenGuid, MustParseUUID("550e8400-e29b-41d4-a716-446655440000")},
 	}
 
 	for _, tt := range tests {
@@ -562,7 +561,7 @@ func TestTokenRoundtrip(t *testing.T) {
 				require.Equal(t, int64(expected), val)
 			case string:
 				require.Equal(t, expected, val)
-			case uuid.UUID:
+			case UUID:
 				require.Equal(t, expected, val)
 			}
 		})
@@ -696,7 +695,7 @@ func TestReadSlice(t *testing.T) {
 		{"byte", TokenByte, byte(42), 1},
 		{"ushort", TokenUShort, uint16(1000), 2},
 		{"ulong", TokenULong, uint32(100000), 4},
-		{"guid", TokenGuid, uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), 16},
+		{"guid", TokenGuid, MustParseUUID("550e8400-e29b-41d4-a716-446655440000"), 16},
 		{"smallstring", TokenSmallString, "hello", 6},
 		{"string", TokenString, "hello", 7},
 		{"smallbytes", TokenSmallBytes, []byte{1, 2, 3}, 4},

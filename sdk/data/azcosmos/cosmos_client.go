@@ -47,10 +47,19 @@ func (c *Client) Endpoint() string {
 
 // Close releases resources associated with the client, including RNTBD connections in Direct mode.
 func (c *Client) Close() error {
+	var errs []error
+
 	if c.directTransport != nil {
-		return c.directTransport.Close()
+		if err := c.directTransport.Close(); err != nil {
+			errs = append(errs, err)
+		}
 	}
-	return nil
+
+	if c.directRouter != nil {
+		c.directRouter.Close()
+	}
+
+	return errors.Join(errs...)
 }
 
 // NewClientWithKey creates a new instance of Cosmos client with shared key authentication. It uses the default pipeline configuration.
@@ -65,15 +74,19 @@ func NewClientWithKey(endpoint string, cred KeyCredential, o *ClientOptions) (*C
 	var preferredRegions []string
 	enableCrossRegionRetries := true
 	var directTransport *directModeTransport
+	var directRouter *directModeRouter
 
 	if o == nil {
 		o = &ClientOptions{}
 	}
 
-	preferredRegions = o.PreferredRegions
+	// Copy options to avoid mutating the caller's instance
+	optsCopy := *o
 
-	if o.ConnectionMode == ConnectionModeDirect {
-		userTransport := o.Transport
+	preferredRegions = optsCopy.PreferredRegions
+
+	if optsCopy.ConnectionMode == ConnectionModeDirect {
+		userTransport := optsCopy.Transport
 
 		var httpClient *http.Client
 		if userTransport != nil {
@@ -100,7 +113,7 @@ func NewClientWithKey(endpoint string, cred KeyCredential, o *ClientOptions) (*C
 		if tlsConfig != nil {
 			poolOpts.ConnectionOptions.TLSConfig = tlsConfig
 		}
-		applyDirectModeOptions(poolOpts, o)
+		applyDirectModeOptions(poolOpts, &optsCopy)
 
 		directTransport = newDirectModeTransport(&DirectModeTransportOptions{
 			PoolOptions: poolOpts,
@@ -111,17 +124,16 @@ func NewClientWithKey(endpoint string, cred KeyCredential, o *ClientOptions) (*C
 			}),
 			Fallback: fallbackRT,
 		})
-		o.Transport = directTransport
+		optsCopy.Transport = directTransport
+		directRouter = newDirectModeRouter(5 * time.Minute)
 	}
 
-	directRouter := newDirectModeRouter(5 * time.Minute)
-
-	gem, err := newGlobalEndpointManager(endpoint, newInternalPipeline(newSharedKeyCredPolicy(cred), o), preferredRegions, 0, enableCrossRegionRetries)
+	gem, err := newGlobalEndpointManager(endpoint, newInternalPipeline(newSharedKeyCredPolicy(cred), &optsCopy), preferredRegions, 0, enableCrossRegionRetries)
 	if err != nil {
 		return nil, err
 	}
 
-	internalClient, err := newClient(newSharedKeyCredPolicy(cred), gem, o)
+	internalClient, err := newClient(newSharedKeyCredPolicy(cred), gem, &optsCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -147,8 +159,11 @@ func NewClient(endpoint string, cred azcore.TokenCredential, o *ClientOptions) (
 		o = &ClientOptions{}
 	}
 
-	if o.Cloud.Services != nil {
-		if svcCfg, ok := o.Cloud.Services[ServiceName]; ok && svcCfg.Audience != "" {
+	// Copy options to avoid mutating the caller's instance
+	optsCopy := *o
+
+	if optsCopy.Cloud.Services != nil {
+		if svcCfg, ok := optsCopy.Cloud.Services[ServiceName]; ok && svcCfg.Audience != "" {
 			audience := svcCfg.Audience
 			scope = []string{audience + "/.default"}
 			log.Write(azlog.EventRequest, fmt.Sprintf("Using custom scope for authentication: %s", scope[0]))
@@ -163,12 +178,13 @@ func NewClient(endpoint string, cred azcore.TokenCredential, o *ClientOptions) (
 		log.Write(azlog.EventRequest, fmt.Sprintf("Using account scope from endpoint for authentication: %s", scope[0]))
 	}
 
-	preferredRegions := o.PreferredRegions
+	preferredRegions := optsCopy.PreferredRegions
 	enableCrossRegionRetries := true
 	var directTransport *directModeTransport
+	var directRouter *directModeRouter
 
-	if o.ConnectionMode == ConnectionModeDirect {
-		userTransport := o.Transport
+	if optsCopy.ConnectionMode == ConnectionModeDirect {
+		userTransport := optsCopy.Transport
 
 		var httpClient *http.Client
 		if userTransport != nil {
@@ -195,7 +211,7 @@ func NewClient(endpoint string, cred azcore.TokenCredential, o *ClientOptions) (
 		if tlsConfig != nil {
 			poolOpts.ConnectionOptions.TLSConfig = tlsConfig
 		}
-		applyDirectModeOptions(poolOpts, o)
+		applyDirectModeOptions(poolOpts, &optsCopy)
 
 		directTransport = newDirectModeTransport(&DirectModeTransportOptions{
 			PoolOptions: poolOpts,
@@ -205,17 +221,16 @@ func NewClient(endpoint string, cred azcore.TokenCredential, o *ClientOptions) (
 			}),
 			Fallback: fallbackRT,
 		})
-		o.Transport = directTransport
+		optsCopy.Transport = directTransport
+		directRouter = newDirectModeRouter(5 * time.Minute)
 	}
 
-	directRouter := newDirectModeRouter(5 * time.Minute)
-
-	gem, err := newGlobalEndpointManager(endpoint, newInternalPipeline(newCosmosBearerTokenPolicy(cred, scope, nil), o), preferredRegions, 0, enableCrossRegionRetries)
+	gem, err := newGlobalEndpointManager(endpoint, newInternalPipeline(newCosmosBearerTokenPolicy(cred, scope, nil), &optsCopy), preferredRegions, 0, enableCrossRegionRetries)
 	if err != nil {
 		return nil, err
 	}
 
-	internalClient, err := newClient(newCosmosBearerTokenPolicy(cred, scope, nil), gem, o)
+	internalClient, err := newClient(newCosmosBearerTokenPolicy(cred, scope, nil), gem, &optsCopy)
 	if err != nil {
 		return nil, err
 	}

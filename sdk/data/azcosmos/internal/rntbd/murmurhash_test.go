@@ -5,6 +5,7 @@ package rntbd
 
 import (
 	"crypto/rand"
+	"strconv"
 	"testing"
 )
 
@@ -126,7 +127,7 @@ func TestMurmurHash3_32_AllTailLengths(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run("length_"+string(rune('0'+tc.length)), func(t *testing.T) {
+		t.Run("length_"+strconv.Itoa(tc.length), func(t *testing.T) {
 			data := make([]byte, tc.length)
 			for i := range data {
 				data[i] = byte(i & 0xFF)

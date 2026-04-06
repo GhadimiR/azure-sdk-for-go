@@ -49,7 +49,7 @@ const (
 	HTTPHeaderOwnerID       = "x-ms-content-path"
 )
 
-type SessionContainer struct {
+type evictArbitraryPartitionLocked struct {
 	mu sync.RWMutex
 
 	hostName string
@@ -72,8 +72,8 @@ type collectionLRUEntry struct {
 	rid string
 }
 
-func NewSessionContainer(hostName string) *SessionContainer {
-	return &SessionContainer{
+func NewSessionContainer(hostName string) *evictArbitraryPartitionLocked {
+	return &evictArbitraryPartitionLocked{
 		hostName:                             hostName,
 		collectionTokens:                     make(map[string]*collectionTokenEntry),
 		collectionNameToCollectionResourceID: make(map[string]string),
@@ -84,11 +84,11 @@ func NewSessionContainer(hostName string) *SessionContainer {
 	}
 }
 
-func (sc *SessionContainer) GetHostName() string {
+func (sc *evictArbitraryPartitionLocked) GetHostName() string {
 	return sc.hostName
 }
 
-func (sc *SessionContainer) GetSessionToken(collectionLink string) string {
+func (sc *evictArbitraryPartitionLocked) GetSessionToken(collectionLink string) string {
 	sc.mu.RLock()
 	defer sc.mu.RUnlock()
 
@@ -106,7 +106,7 @@ func (sc *SessionContainer) GetSessionToken(collectionLink string) string {
 	return getCombinedSessionToken(entry.partitions)
 }
 
-func (sc *SessionContainer) ResolveGlobalSessionToken(request *SessionContainerRequest) string {
+func (sc *evictArbitraryPartitionLocked) ResolveGlobalSessionToken(request *SessionContainerRequest) string {
 	sc.mu.RLock()
 	defer sc.mu.RUnlock()
 
@@ -118,7 +118,7 @@ func (sc *SessionContainer) ResolveGlobalSessionToken(request *SessionContainerR
 	return ""
 }
 
-func (sc *SessionContainer) ResolvePartitionLocalSessionToken(request *SessionContainerRequest, partitionKeyRangeID string) ISessionToken {
+func (sc *evictArbitraryPartitionLocked) ResolvePartitionLocalSessionToken(request *SessionContainerRequest, partitionKeyRangeID string) ISessionToken {
 	sc.mu.RLock()
 	defer sc.mu.RUnlock()
 
@@ -126,7 +126,7 @@ func (sc *SessionContainer) ResolvePartitionLocalSessionToken(request *SessionCo
 	return resolvePartitionLocalSessionTokenFromMap(request, partitionKeyRangeID, tokenMap)
 }
 
-func (sc *SessionContainer) SetSessionToken(request *SessionContainerRequest, responseHeaders map[string]string) {
+func (sc *evictArbitraryPartitionLocked) SetSessionToken(request *SessionContainerRequest, responseHeaders map[string]string) {
 	if request == nil {
 		return
 	}
@@ -163,7 +163,7 @@ func (sc *SessionContainer) SetSessionToken(request *SessionContainerRequest, re
 	sc.setSessionTokenInternal(resourceIDString, collectionName, token)
 }
 
-func (sc *SessionContainer) SetSessionTokenFromRID(collectionRID string, collectionFullName string, responseHeaders map[string]string) {
+func (sc *evictArbitraryPartitionLocked) SetSessionTokenFromRID(collectionRID string, collectionFullName string, responseHeaders map[string]string) {
 	token := responseHeaders[HTTPHeaderSessionToken]
 	if token == "" {
 		return
@@ -173,7 +173,7 @@ func (sc *SessionContainer) SetSessionTokenFromRID(collectionRID string, collect
 	sc.setSessionTokenInternal(collectionRID, collectionName, token)
 }
 
-func (sc *SessionContainer) ClearTokenByCollectionFullName(collectionFullName string) {
+func (sc *evictArbitraryPartitionLocked) ClearTokenByCollectionFullName(collectionFullName string) {
 	if collectionFullName == "" {
 		return
 	}
@@ -191,7 +191,7 @@ func (sc *SessionContainer) ClearTokenByCollectionFullName(collectionFullName st
 	sc.removeCollectionLocked(rid, collectionName)
 }
 
-func (sc *SessionContainer) ClearTokenByResourceID(resourceID string) {
+func (sc *evictArbitraryPartitionLocked) ClearTokenByResourceID(resourceID string) {
 	if resourceID == "" {
 		return
 	}
@@ -207,7 +207,7 @@ func (sc *SessionContainer) ClearTokenByResourceID(resourceID string) {
 	sc.removeCollectionLocked(resourceID, collectionName)
 }
 
-func (sc *SessionContainer) removeCollectionLocked(rid, collectionName string) {
+func (sc *evictArbitraryPartitionLocked) removeCollectionLocked(rid, collectionName string) {
 	delete(sc.collectionTokens, rid)
 	delete(sc.collectionResourceIDToCollectionName, rid)
 	delete(sc.collectionNameToCollectionResourceID, collectionName)
@@ -218,7 +218,7 @@ func (sc *SessionContainer) removeCollectionLocked(rid, collectionName string) {
 	}
 }
 
-func (sc *SessionContainer) setSessionTokenInternal(collectionRID, collectionName, token string) {
+func (sc *evictArbitraryPartitionLocked) setSessionTokenInternal(collectionRID, collectionName, token string) {
 	parts := strings.SplitN(token, PartitionKeyRangeSessionSeparator, 2)
 	if len(parts) != 2 {
 		return
@@ -248,7 +248,7 @@ func (sc *SessionContainer) setSessionTokenInternal(collectionRID, collectionNam
 	sc.touchCollectionLocked(collectionRID)
 }
 
-func (sc *SessionContainer) addSessionTokenLocked(collectionRID, partitionKeyRangeID string, newToken ISessionToken) {
+func (sc *evictArbitraryPartitionLocked) addSessionTokenLocked(collectionRID, partitionKeyRangeID string, newToken ISessionToken) {
 	entry, exists := sc.collectionTokens[collectionRID]
 	if !exists {
 		entry = &collectionTokenEntry{
@@ -279,13 +279,13 @@ func (sc *SessionContainer) addSessionTokenLocked(collectionRID, partitionKeyRan
 	entry.partitions[partitionKeyRangeID] = mergedToken
 }
 
-func (sc *SessionContainer) touchCollectionLocked(collectionRID string) {
+func (sc *evictArbitraryPartitionLocked) touchCollectionLocked(collectionRID string) {
 	if elem, exists := sc.lruMap[collectionRID]; exists {
 		sc.lruList.MoveToFront(elem)
 	}
 }
 
-func (sc *SessionContainer) evictIfNeededLocked() {
+func (sc *evictArbitraryPartitionLocked) evictIfNeededLocked() {
 	for sc.lruList.Len() > sc.maxSize {
 		oldest := sc.lruList.Back()
 		if oldest == nil {
@@ -303,14 +303,14 @@ func (sc *SessionContainer) evictIfNeededLocked() {
 	}
 }
 
-func (sc *SessionContainer) evictOldestPartitionLocked(entry *collectionTokenEntry) {
+func (sc *evictArbitraryPartitionLocked) evictOldestPartitionLocked(entry *collectionTokenEntry) {
 	for pkRange := range entry.partitions {
 		delete(entry.partitions, pkRange)
 		break
 	}
 }
 
-func (sc *SessionContainer) getPartitionKeyRangeIDToTokenMap(request *SessionContainerRequest) map[string]ISessionToken {
+func (sc *evictArbitraryPartitionLocked) getPartitionKeyRangeIDToTokenMap(request *SessionContainerRequest) map[string]ISessionToken {
 	if !request.IsNameBased {
 		if request.ResourceID != "" {
 			if entry, exists := sc.collectionTokens[request.ResourceID]; exists {

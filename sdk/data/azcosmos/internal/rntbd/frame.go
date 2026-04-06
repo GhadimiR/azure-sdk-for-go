@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"io"
 	"sort"
-
-	"github.com/google/uuid"
 )
 
 // -----------------------------------------------------------------------------
@@ -41,7 +39,7 @@ const (
 type RequestFrame struct {
 	ResourceType  ResourceType
 	OperationType OperationType
-	ActivityID    uuid.UUID
+	ActivityID    UUID
 }
 
 // Encode writes the request frame to the writer.
@@ -104,9 +102,9 @@ func DecodeRequestFrame(r io.Reader) (*RequestFrame, error) {
 //	│ length (4B) │ status (4B) │ activityId (16B, MS-GUID)                   │
 //	└─────────────┴─────────────┴─────────────────────────────────────────────┘
 type ResponseFrame struct {
-	Length     uint32    // Total length of headers (including this frame, excluding payload)
-	Status     int32     // HTTP-like status code
-	ActivityID uuid.UUID // Activity ID in MS-GUID format
+	Length     uint32 // Total length of headers (including this frame, excluding payload)
+	Status     int32  // HTTP-like status code
+	ActivityID UUID   // Activity ID in MS-GUID format
 }
 
 // HeadersLength returns the length of the headers portion (excluding the fixed frame).
@@ -267,7 +265,7 @@ func (ts *TokenStream) SetBytes(id uint16, value []byte) {
 }
 
 // SetGUID sets a GUID token value.
-func (ts *TokenStream) SetGUID(id uint16, value uuid.UUID) {
+func (ts *TokenStream) SetGUID(id uint16, value UUID) {
 	ts.SetValue(id, TokenGuid, value) //nolint:errcheck
 }
 
@@ -411,12 +409,12 @@ func (ts *TokenStream) GetBytes(id uint16) []byte {
 }
 
 // GetGUID returns the GUID value of a token, or empty UUID if not present.
-func (ts *TokenStream) GetGUID(id uint16) uuid.UUID {
+func (ts *TokenStream) GetGUID(id uint16) UUID {
 	val, err := ts.GetValue(id, TokenGuid)
 	if err != nil || val == nil {
 		return EmptyUUID
 	}
-	if g, ok := val.(uuid.UUID); ok {
+	if g, ok := val.(UUID); ok {
 		return g
 	}
 	return EmptyUUID
@@ -509,7 +507,7 @@ type RequestMessage struct {
 }
 
 // NewRequestMessage creates a new request message with the given parameters.
-func NewRequestMessage(resourceType ResourceType, operationType OperationType, activityID uuid.UUID) *RequestMessage {
+func NewRequestMessage(resourceType ResourceType, operationType OperationType, activityID UUID) *RequestMessage {
 	return &RequestMessage{
 		Frame: &RequestFrame{
 			ResourceType:  resourceType,
@@ -640,7 +638,7 @@ type ResponseMessage struct {
 }
 
 // NewResponseMessage creates a new response message with the given parameters.
-func NewResponseMessage(status int32, activityID uuid.UUID) *ResponseMessage {
+func NewResponseMessage(status int32, activityID UUID) *ResponseMessage {
 	return &ResponseMessage{
 		Frame: &ResponseFrame{
 			Status:     status,

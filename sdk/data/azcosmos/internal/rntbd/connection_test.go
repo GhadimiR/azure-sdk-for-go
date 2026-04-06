@@ -13,7 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -296,7 +295,7 @@ func TestConnection_Send_Success(t *testing.T) {
 	defer func() { _ = conn.Close() }()
 
 	// Send request
-	activityID := uuid.New()
+	activityID := MustNewUUID()
 	req := NewRequestMessage(ResourceDocument, OperationRead, activityID)
 	_ = req.Headers.SetValue(uint16(RequestHeaderPayloadPresent), TokenByte, byte(0))
 
@@ -353,7 +352,7 @@ func TestConnection_Send_Multiplexing(t *testing.T) {
 		go func() {
 			defer wg.Done()
 
-			activityID := uuid.New()
+			activityID := MustNewUUID()
 			req := NewRequestMessage(ResourceDocument, OperationRead, activityID)
 			_ = req.Headers.SetValue(uint16(RequestHeaderPayloadPresent), TokenByte, byte(0))
 
@@ -407,7 +406,7 @@ func TestConnection_Send_OnClosedConnection(t *testing.T) {
 	require.True(t, conn.IsClosed())
 
 	// Try to send
-	req := NewRequestMessage(ResourceDocument, OperationRead, uuid.New())
+	req := NewRequestMessage(ResourceDocument, OperationRead, MustNewUUID())
 	_, err = conn.Send(ctx, req)
 	require.Error(t, err)
 	require.Equal(t, ErrConnectionClosed, err)
@@ -433,7 +432,7 @@ func TestConnection_Send_MissingActivityID(t *testing.T) {
 	defer func() { _ = conn.Close() }()
 
 	// Send request without activity ID
-	req := NewRequestMessage(ResourceDocument, OperationRead, uuid.Nil)
+	req := NewRequestMessage(ResourceDocument, OperationRead, Nil)
 	_, err = conn.Send(ctx, req)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "ActivityID")
@@ -465,7 +464,7 @@ func TestConnection_Close_FailsPendingRequests(t *testing.T) {
 	// Start a request in background
 	errCh := make(chan error, 1)
 	go func() {
-		req := NewRequestMessage(ResourceDocument, OperationRead, uuid.New())
+		req := NewRequestMessage(ResourceDocument, OperationRead, MustNewUUID())
 		_, err := conn.Send(ctx, req)
 		errCh <- err
 	}()
@@ -566,7 +565,7 @@ func TestConnection_PendingRequests(t *testing.T) {
 
 	// Start a request in background
 	go func() {
-		req := NewRequestMessage(ResourceDocument, OperationRead, uuid.New())
+		req := NewRequestMessage(ResourceDocument, OperationRead, MustNewUUID())
 		_, _ = conn.Send(ctx, req)
 	}()
 
