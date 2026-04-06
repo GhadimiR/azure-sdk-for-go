@@ -266,7 +266,7 @@ func (sc *evictArbitraryPartitionLocked) addSessionTokenLocked(collectionRID, pa
 	existingToken, exists := entry.partitions[partitionKeyRangeID]
 	if !exists {
 		if len(entry.partitions) >= sessionContainerMaxPartitionsPerColl {
-			sc.evictOldestPartitionLocked(entry)
+			sc.evictArbitraryPartition(entry)
 		}
 		entry.partitions[partitionKeyRangeID] = newToken
 		return
@@ -303,7 +303,7 @@ func (sc *evictArbitraryPartitionLocked) evictIfNeededLocked() {
 	}
 }
 
-func (sc *evictArbitraryPartitionLocked) evictOldestPartitionLocked(entry *collectionTokenEntry) {
+func (sc *evictArbitraryPartitionLocked) evictArbitraryPartition(entry *collectionTokenEntry) {
 	for pkRange := range entry.partitions {
 		delete(entry.partitions, pkRange)
 		break
